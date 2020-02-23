@@ -1,0 +1,118 @@
+{	
+	"interval": 180,
+	"submonitor_dic": {
+		"Youtube": {"class": "Monitor", "target": "youtube", "target_name": "youtube", "config_name": "youtube"},
+		"Twitter": {"class": "Monitor", "target": "twitter", "target_name": "twitter", "config_name": "twitter"},
+		"Fanbox": {"class": "Monitor", "target": "fanbox", "target_name": "fanbox", "config_name": "fanbox"}
+	},
+	"youtube": {
+		"interval": 180,
+		"submonitor_dic": {
+			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60},
+			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60},
+			"YoutubeLive 神楽めあ子频道": {"class": "YoutubeLive", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
+			"YoutubeCom 神楽めあ子频道": {"class": "YoutubeCom", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
+			"YoutubeLive 愛繋璃": {"class": "YoutubeLive", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config"},
+			"YoutubeCom 愛繋璃": {"class": "YoutubeCom", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config"},
+			"YoutubeLive 湊あくあ": {"class": "YoutubeLive", "target": "UC1opHUrw8rvnsadT-iGp7Cg", "target_name": "湊あくあ", "config_name": "youtube_config"},
+			"YoutubeLive 犬山たまき": {"class": "YoutubeLive", "target": "UC8NZiqKx6fsDT3AVcMiVFyA", "target_name": "犬山たまき", "config_name": "youtube_config"},
+			"YoutubeLive 織田信姫": {"class": "YoutubeLive", "target": "UCGcD5iUDG8xiywZeeDxye-A", "target_name": "織田信姫", "config_name": "youtube_config"},
+			"YoutubeLive 日ノ隈らん": {"class": "YoutubeLive", "target": "UCRvpMpzAXBRKJQuk-8-Sdvg", "target_name": "日ノ隈らん", "config_name": "youtube_config"},
+			"YoutubeLive 因幡はねる": {"class": "YoutubeLive", "target": "UC0Owc36U9lOyi9Gx9Ic-4qg", "target_name": "因幡はねる", "config_name": "youtube_config"},
+			"YoutubeLive 物述有栖": {"class": "YoutubeLive", "target": "UCt0clH12Xk1-Ej5PXKGfdPA", "target_name": "物述有栖", "config_name": "youtube_config"},
+			"YoutubeLive 癒月ちょこ": {"class": "YoutubeLive", "target": "UC1suqwovbL1kzsoaZgFZLKg", "target_name": "癒月ちょこ", "config_name": "youtube_config"},
+			"YoutubeLive 卯月コウ": {"class": "YoutubeLive", "target": "UC3lNFeJiTq6L3UWoz4g1e-A", "target_name": "卯月コウ", "config_name": "youtube_config"},
+			"YoutubeLive 舞元啓介": {"class": "YoutubeLive", "target": "UCJubINhCcFXlsBwnHp0wl_g", "target_name": "舞元啓介", "config_name": "youtube_config"},
+			"YoutubeLive けんき": {"class": "YoutubeLive", "target": "UCNicQVuAQJYlCQKEw1TKn1A", "target_name": "けんき", "config_name": "youtube_config"}
+		},
+		"youtube_config": {
+			"interval": 180,
+			"vip_dic": {
+				"UCWCc8tO-uUl_7SJXIKJACMw": {"mea": 10},
+				"UCu5eCcfs67GkeCFbhsMrEjA": {"mea": 10},
+				"UCZU5rKvh3aAFs1PyyfeLWcg": {"mea": 10}
+			},
+			"word_dic": {
+				"神楽めあ": {"mea": 4},
+				"めあちゃん": {"mea": 4},
+				"めあだ": {"mea": 4},
+				"神楽": {"mea": 2},
+				"めあ": {"mea": 2},
+				"かぐら": {"mea": 2},
+				"メア": {"mea": 2}
+			},
+			"cookies": {},
+			"push_dic": {
+				"pushlist_qq": [
+					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}}
+				]
+			}
+		}
+	},
+	"twitter": {
+		"interval": 180,
+		"submonitor_dic": {
+			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
+			"TwitterTweet 神楽めあ": {"class": "TwitterTweet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
+			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
+			"TwitterTweet 湊あくあ": {"class": "TwitterTweet", "target": "minatoaqua", "target_name": "湊あくあ", "config_name": "twitter_config"},
+			"TwitterTweet 織田信姫": {"class": "TwitterTweet", "target": "oda_nobuhime", "target_name": "織田信姫", "config_name": "twitter_config"},
+			"TwitterTweet 犬山たまき": {"class": "TwitterTweet", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
+			"TwitcastLive 犬山たまき": {"class": "TwitcastLive", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
+			"TwitterTweet 日ノ隈らん": {"class": "TwitterTweet", "target": "Ran_Hinokuma", "target_name": "日ノ隈らん", "config_name": "twitter_config"},
+			"TwitterTweet 因幡はねる": {"class": "TwitterTweet", "target": "Haneru_Inaba", "target_name": "因幡はねる", "config_name": "twitter_config"},
+			"TwitterTweet 物述有栖": {"class": "TwitterTweet", "target": "AliceMononobe", "target_name": "物述有栖", "config_name": "twitter_config"},
+			"TwitterTweet 癒月ちょこ": {"class": "TwitterTweet", "target": "yuzukichococh", "target_name": "癒月ちょこ", "config_name": "twitter_config"},
+			"TwitcastLive 癒月ちょこ": {"class": "TwitcastLive", "target": "yuzukichococh", "target_name": "癒月ちょこ", "config_name": "twitter_config"},
+			"TwitterTweet 郡道美玲": {"class": "TwitterTweet", "target": "g9v9g_mirei", "target_name": "郡道美玲", "config_name": "twitter_config"},
+			"TwitcastLive 郡道美玲": {"class": "TwitcastLive", "target": "g9v9g_mirei", "target_name": "郡道美玲", "config_name": "twitter_config"},
+			"TwitterTweet 卯月コウ": {"class": "TwitterTweet", "target": "udukikohh", "target_name": "卯月コウ", "config_name": "twitter_config"},
+			"TwitcastLive 卯月コウ": {"class": "TwitcastLive", "target": "udukikohh", "target_name": "卯月コウ", "config_name": "twitter_config"},
+			"TwitterTweet 舞元啓介": {"class": "TwitterTweet", "target": "maimoto_k", "target_name": "舞元啓介", "config_name": "twitter_config"},
+			"TwitterSearch めあArt": {"class": "TwitterSearch", "target": "めあArt filter:links", "target_name": "めあArt", "config_name": "twitter_search_config"}
+		},
+		"twitter_config": {
+			"interval": 180,
+			"vip_dic": {
+				"KaguraMea_VoV": {"mea": 10},
+				"maturin_love221": {"mea": 10}
+			},
+			"word_dic": {
+				"神楽めあ": {"mea": 4},
+				"めあちゃん": {"mea": 4},
+				"めあだ": {"mea": 4},
+				"神楽": {"mea": 2},
+				"めあ": {"mea": 2},
+				"かぐら": {"mea": 2},
+				"メア": {"mea": 2},
+				"めあArt": {"mea": -10, "mea_art": 4}
+			},
+			"cookies": {},
+			"push_dic": {
+				"pushlist_qq": [
+					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}}
+				]
+			}
+		}
+	},
+	"fanbox": {
+		"interval": 180,
+		"submonitor_dic": {
+			"FanboxUser 神楽めあ": {"class": "FanboxUser", "target": "32024360", "target_name": "神楽めあ", "config_name": "fanbox_config"},
+			"FanboxPost 神楽めあ": {"class": "FanboxPost", "target": "32024360", "target_name": "神楽めあ", "config_name": "fanbox_config"}
+		},
+		"fanbox_config": {
+			"interval": 180,
+			"vip_dic": {
+				"32024360": {"mea": 10}
+			},
+			"word_dic": {},
+			"cookies": {},
+			"push_dic": {
+				"pushlist_qq": [
+					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}}
+				]
+			}
+		}
+	}
+}
