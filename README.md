@@ -7,7 +7,7 @@
 
 
 # 原理说明
-主要由三部分构成，coolq机器人和coolq-http-api插件、nonebot机器人和相应插件、检测脚本。
+主要由三部分构成，coolq机器人和coolq-http-api插件、nonebot机器人和相应插件、检测脚本。  
 coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收发信息，其中coolq-http-api插件一方面通过接受检测脚本发送到的指定端口的http请求（默认为5700端口）向qq用户推送消息，另一方面通过websocket和nonebot机器人建立连接、接受并处理qq用户发来的消息，让用户可以通过qq查看和修改推送设置。
 
 
