@@ -91,3 +91,7 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
   * 脚本内置的子监视器类型有YoutubeLive（监视youtube直播和视频）、YoutubeCom（监视youtube社区帖子 付费帖子需要cookies）、YoutubeNote（监视cookies对应的用户的通知 需要cookies）、TwitterUser（监视twitter用户的基本信息如签名和推特数等 需要cookies）、TwitterTweet（监视twitter用户的推特 需要cookies）、TwitterSearch（监视推特搜索结果 需要cookies）、TwitcastLive（监视twitcast直播）、FanboxUser（监视fanbox用户的基本信息如简介和背景等）、FanboxPost（监视fanbox用户的帖子 付费帖子的内容需要cookies）。其中YoutubeLive和TwitcastLive在相应频道有直播时还会分别启动YoutubeChat和TwitcastChat子监视器来监视直播评论。
   * YoutubeChat和TwitcastChat会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这个色彩的值将会被多-1。
   * "推送色彩"、"接收色彩"、"推送阻力"都可以设定为负值，或许可以产生更灵活的用法。
+  
+## 想做的事
+  * 添加bilibili动态和直播监视器。不过由于内容相关性更弱以及重复性更大会可能产生更多无效推送，做出来不一定实用。另外bilibili对于ip和api调用的限制似乎比较严格，可能不适合在服务器上运行。
+  * 优化内存占用。因为脚本大部分时间都在等待，网络、cpu和io的压力应该不大；但由于视频列表等数据基本都是储存在内存中而且缺乏清理机制，暂时不清楚长时间运行是否会导致内存占用过高，考虑不记录视频标题等内容、或者将列表储存到磁盘中。当然换语言或许是更好的办法，但我不会！
