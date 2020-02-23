@@ -3,23 +3,24 @@
   
   * pausebot.py和plugins为启动nonebot机器人的脚本及插件。用于让相关用户可以通过qq对pause.json中的设置进行查看和修改。  
 
-感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法。
+感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法。  
 
 
 # 原理说明
 主要由三部分构成，coolq机器人和coolq-http-api插件、nonebot机器人和相应插件、检测脚本。  
-coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收发信息，其中coolq-http-api插件一方面通过接受检测脚本发送到的指定端口的http请求（默认为5700端口）向qq用户推送消息，另一方面通过websocket和nonebot机器人建立连接、接受并处理qq用户发来的消息，让用户可以通过qq查看和修改推送设置。
+coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收发信息，其中coolq-http-api插件一方面通过接受检测脚本发送到的指定端口的http请求（默认为5700端口）向qq用户推送消息，另一方面通过websocket和nonebot机器人建立连接、接受并处理qq用户发来的消息，让用户可以通过qq查看和修改推送设置。  
 
 
 # 环境依赖和安装方法
-  * coolq机器人（[windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558)）和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)
-  coolq机器人在windows中直接下载运行即可，在linux中需要在docker中安装`docker pull coolq/wine-coolq·、建立设置文件夹`mkdir 'coolq机器人设置文件存放路径'`、运行`docker run --name=coolq --rm -p 5700:5700 -p 9000:9000 -v 刚刚建立的设置文件存放路径:/home/user/coolq -e VNC_PASSWD=网页登陆密码 -e COOLQ_ACCOUNT=你的qq账号 -e CQHTTP_SERVE_DATA_FILES=yes coolq/wine-coolq`、在浏览器中打开`http://你的服务器IP:9000`并输入刚刚设置的网页登陆密码登录。在运行一次后coolq机器人的设置文件夹中将会产生几个文件夹，需要将io.github.richardchien.coolqhttpapi.cpk文件(coolq-http-api插件本体)放到app文件夹下，重启coolq机器人后在设置中启用coolq-http-api插件，再次重启coolq机器人后设置文件夹的app\io.github.richardchien.coolqhttpapi\config或data\app\io.github.richardchien.coolqhttpapi\config中将会产生一个json文件，将其中的内容替换为此项目中相应设置示例的内容即可。
+  * coolq机器人（[windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558)）和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)  
+  coolq机器人在windows中直接下载运行即可，在linux中需要在docker中安装`docker pull coolq/wine-coolq`、建立设置文件夹`mkdir 'coolq机器人设置文件存放路径'`、运行`docker run --name=coolq --rm -p 5700:5700 -p 9000:9000 -v 刚刚建立的设置文件存放路径:/home/user/coolq -e VNC_PASSWD=网页登陆密码 -e COOLQ_ACCOUNT=你的qq账号 -e CQHTTP_SERVE_DATA_FILES=yes coolq/wine-coolq`、在浏览器中打开`http://你的服务器IP:9000`并输入刚刚设置的网页登陆密码登录。  
+  在运行一次后coolq机器人的设置文件夹中将会产生几个文件夹，需要将io.github.richardchien.coolqhttpapi.cpk文件(coolq-http-api插件本体)放到app文件夹下，重启coolq机器人后在设置中启用coolq-http-api插件，再次重启coolq机器人后设置文件夹的app\io.github.richardchien.coolqhttpapi\config或data\app\io.github.richardchien.coolqhttpapi\config中将会产生一个json文件，将其中的内容替换为此项目中相应设置示例的内容即可。
 
-  * [nonebot机器人](https://nonebot.cqp.moe/)、启动脚本(pausebot.py)和相应插件(plugins文件夹)
+  * [nonebot机器人](https://nonebot.cqp.moe/)、启动脚本(pausebot.py)和相应插件(plugins文件夹)  
   在命令行中运行`pip3 install nonebot`即可安装nonebot机器人本体，再将pausebot.py和plugins文件夹下载到本地任意目录即可。
 
-  * 检测脚本和相应设置文件
-  将spider.py、spider.json和pause.json文件下载到和pausebot.py和plugins文件夹的相同的目录即可。
+  * 检测脚本和相应设置文件  
+  将spider.py、spider.json和pause.json文件下载到和pausebot.py和plugins文件夹的相同的目录即可。  
 
 
 # 启动和使用方法
