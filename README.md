@@ -88,6 +88,6 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
 
   * 每一个子监视器还可以继续启动自己的子监视器，只要指定的配置中还有"submonitor_dic"项并且添加了相应的子监视器信息的话。例如spider.json中就先启动了基于Monitor类的"Youtube"、"Twitter"、"Fanbox"三个监视器，这三个监视器又启动了各自配置中"submonitor_dic"项中指定的子监视器。
   * "submonitor_dic"项中子监视器信息除了必要的"class"、"target"、"target_name"、"config_name"四项之外还可以添加其他项目，这些多余的项目将会覆盖配置中的项目（如果配置中没有则会添加同名变量）。例如spider.json中就在部分子监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。
-  * 脚本内置的子监视器类型有YoutubeLive（监视youtube直播和视频）、YoutubeCom（监视youtube社区帖子）、YoutubeNote（监视cookies对应的用户的通知）、TwitterUser（监视twitter用户信息 如签名和推特数等）、TwitterTweet（监视twitter用户的推特）、TwitterSearch（监视推特搜索结果）、TwitcastLive（监视twitcast直播）、FanboxUser（监视fanbox用户信息）、FanboxPost（监视fanbox用户的帖子），其中YoutubeLive和TwitcastLive在相应频道有直播时还会分别启动YoutubeChat和TwitcastChat子监视器来监视直播评论。
+  * 脚本内置的子监视器类型有YoutubeLive（监视youtube直播和视频）、YoutubeCom（监视youtube社区帖子 付费帖子需要cookies）、YoutubeNote（监视cookies对应的用户的通知 需要cookies）、TwitterUser（监视twitter用户的基本信息如签名和推特数等 需要cookies）、TwitterTweet（监视twitter用户的推特 需要cookies）、TwitterSearch（监视推特搜索结果 需要cookies）、TwitcastLive（监视twitcast直播）、FanboxUser（监视fanbox用户的基本信息如简介和背景等）、FanboxPost（监视fanbox用户的帖子 付费帖子的内容需要cookies）。其中YoutubeLive和TwitcastLive在相应频道有直播时还会分别启动YoutubeChat和TwitcastChat子监视器来监视直播评论。
   * YoutubeChat和TwitcastChat会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这个色彩的值将会被多-1。
   * "推送色彩"、"接收色彩"、"推送阻力"都可以设定为负值，或许可以产生更灵活的用法。
