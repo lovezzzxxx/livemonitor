@@ -47,6 +47,8 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
   * 关键词匹配基本由设置文件中的"vip_dic"和"word_dic"指定，"vip_dic"中的关键词用于匹配检测的频道、发送的用户、提及的用户之类的信息，"word_dic"中的关键词用于匹配标题、简介、消息内容之类的信息；当匹配到相应的关键词时，关键词对应的"推送色彩"将会被记录并累加。例如当检测的用户发送了一条消息`小红和小蓝在玩`时，如果`"word_dic": {'小红': {'red': 1, 'small': 1}, '小蓝': {'blue': 1, 'small': 2}}`，则这条消息的"推送色彩"将会为`{'red': 1, 'blue': 1, 'small': 3}`。
   * 用户推送由设置文件中的"push_dic"指定，其中除了诸如用户类型和qq号等基本信息之外还有指定"接收色彩"的参数"color_dic"，当一条消息的"推送色彩"中有任何一个对应类型的值大于"接收色彩"中的指定值时这条消息就会向该用户推送。如用户的`"color_dic": {'green': 1, 'small': 2}`，则上述例子中的消息将会向这该用户推送。
   * 当qq用户或qq群内向机器人账号发送`\pause 数字`指令后，相应qq账号或qq群的"推送阻力"将会被记录到pause.json文件中。在推送时相应账号的所有"接收色彩"将会增加"推送阻力"的值，也就是对推送内容更加"挑剔"，以减少不相关内容的骚扰。
+  * "推送色彩"、"接收色彩"、"推送阻力"都可以设定为负值，或许可以产生更灵活的用法。
+
 
 #### 配置文件详解
 ```
@@ -56,7 +58,7 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
   "submonitor_dic": {  # 子监视器列表
     "YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config"},
     "TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config"}
-    # "子监视器名称 用于特异的标记子监视器 不能重复": {"class": "子监视器类型 用于启动不同类型的子监视器来完成不同的监视任务 与脚本中的类名相同", "target": "要检测的频道编号 注意大小写敏感", "target_name": "检测的频道名称 将会被添加到推送消息中表明消息来源", "config_name": "要使用的配置名称"}
+    # "子监视器名称 用于特异的标记子监视器 不能重复": {"class": "子监视器类名 用于启动不同类型的子监视器来完成不同的监视任务 与脚本中的类名相同", "target": "要检测的频道编号 注意大小写敏感", "target_name": "检测的频道名称 将会被添加到推送消息中表明消息来源", "config_name": "要使用的配置名称"}
   },
   
   "youtube_config": {  # 配置名称 即上面"config_name"后指定的名称
@@ -87,10 +89,26 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
 ```
 
   * 每一个子监视器还可以继续启动自己的子监视器，只要指定的配置中还有"submonitor_dic"项并且添加了相应的子监视器信息的话。例如spider.json中就先启动了基于Monitor类的"Youtube"、"Twitter"、"Fanbox"三个监视器，这三个监视器又启动了各自配置中"submonitor_dic"项中指定的子监视器。
-  * "submonitor_dic"项中子监视器信息除了必要的"class"、"target"、"target_name"、"config_name"四项之外还可以添加其他项目，这些多余的项目将会覆盖配置中的项目（如果配置中没有则会添加同名变量）。例如spider.json中就在部分子监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。
-  * 脚本内置的子监视器类型有YoutubeLive（监视youtube直播和视频）、YoutubeCom（监视youtube社区帖子 付费帖子需要cookies）、YoutubeNote（监视cookies对应的用户的通知 需要cookies）、TwitterUser（监视twitter用户的基本信息如签名和推特数等 需要cookies）、TwitterTweet（监视twitter用户的推特 需要cookies）、TwitterSearch（监视推特搜索结果 需要cookies）、TwitcastLive（监视twitcast直播）、FanboxUser（监视fanbox用户的基本信息如简介和背景等）、FanboxPost（监视fanbox用户的帖子 付费帖子的内容需要cookies）。其中YoutubeLive和TwitcastLive在相应频道有直播时还会分别启动YoutubeChat和TwitcastChat子监视器来监视直播评论。
-  * YoutubeChat和TwitcastChat会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这个色彩的值将会被多-1。
-  * "推送色彩"、"接收色彩"、"推送阻力"都可以设定为负值，或许可以产生更灵活的用法。
+  * 子监视器运行所需的参数由"submonitor_dic"中的项和其中"config_name"指向的配置组成，其中"class"、"target"、"target_name"、"config_name"四个项目作为必选参数需要在"submonitor_dic"中指定，其他参数既可以添加在"submonitor_dic"中也可以添加在"config_name"指向的配置中；注意当有同名参数同时存在于两个未知时，"submonitor_dic"中的参数将会生效。例如spider.json中就在部分"submonitor_dic"子监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。  
+
+#### 子监视器详解
+  * 
+__子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
+:---|:---|:---|:---|:---|:---|:---|:---
+Monitor|作为基本监视器管理子监视器组|interval|||||
+YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、push_dic|target|标题、简介|可留空|"standby_chat"="True"/"False"，"standby_chat_onstart"="True"/"False"|standby_chat为是否检测待机直播间的弹幕 默认为"True"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False"
+YoutubeChat|监视youtube直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由YoutubeLive监视器创建 无需在配置文件中指定
+YoutubeCom|监视youtube社区帖子|同上|target|帖子文字|付费帖子，可留空|||
+YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包括superchat）|用户通知，必要|||
+TwitterUser|监视twitter用户基本信息|同上|target||必要|"no_increase"="True"/"False"|no_increase为是否不推送推文和媒体数量的增加 默认为"False"
+TwitterTweet|监视twitter用户的推文|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|||
+TwitterSearch|监视推特搜索结果|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|"only_live"="True"/"False", "only_liveorvideo"="True"/"False"|only_live为是否只推送有链接指向正在进行的youtube直播的推文 默认为"False"，only_liveorvideo为是否只推送有链接指向youtube直播或视频的推文 默认为"False"，当两者同时开启时则only_liveorvideo生效
+TwitcastLive|监视twitcast直播|同上|target||可留空|||
+TwitcastChat|监视twitcast直播评论|同上|父监视器target（取负、直播评论发送频道|直播评论文字|||通常由TwitcastLive监视器创建 无需在配置文件中指定
+FanboxUser|监视fanbox用户基本信息|同上|target||可留空|||
+FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，可留空|||
+
+  * YoutubeChat和TwitcastChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这个色彩的值将会被多-1。
   
 ## 想做的事
   * 添加bilibili动态和直播监视器。不过由于内容相关性更弱以及重复性更大会可能产生更多无效推送，做出来不一定实用。另外bilibili对于ip和api调用的限制似乎比较严格，可能不适合在服务器上运行。
