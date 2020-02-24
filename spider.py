@@ -437,7 +437,7 @@ class YoutubeNote(Monitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt
+# vip=tgt, no_increase="True"/"False"
 class TwitterUser(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -451,6 +451,11 @@ class TwitterUser(Monitor):
 
         self.is_firstrun = True
         self.userdata_dic = {}
+        # 是否不推送推文和媒体数量的增加
+        if "no_increase" in self.cfg:
+            self.no_increase = self.cfg["no_increase"]
+        else:
+            self.no_increase = "False"
 
     def run(self):
         while not self.stop_now:
@@ -465,6 +470,11 @@ class TwitterUser(Monitor):
                     for key in user_datadic_new:
                         # 不可能会增加新键所以不做判断
                         if self.userdata_dic[key] != user_datadic_new[key]:
+                            if self.no_increase == "True" and (key == "user_twitcount" or key == "user_mediacount"):
+                                if self.userdata_dic[key] < user_datadic_new[key]:
+                                    self.userdata_dic[key] = user_datadic_new[key]
+                                    continue
+
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
