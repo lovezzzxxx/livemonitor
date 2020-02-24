@@ -115,7 +115,7 @@ class Monitor(threading.Thread):
             self.submonitor_threads[monitor_name].stop()
 
 
-# vip=tgt, word=title+description
+# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False"
 class YoutubeLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -133,6 +133,16 @@ class YoutubeLive(Monitor):
 
         self.is_firstrun = True
         self.videodic = {}
+        # 是否检测待机直播间的弹幕
+        if "standby_chat" in self.cfg:
+            self.standby_chat = self.cfg["standby_chat"]
+        else:
+            self.standby_chat = "True"
+        # 是否检测在第一次检测时已开启的待机直播间的弹幕
+        if "standby_chat_onstart" in self.cfg:
+            self.standby_chat_onstart = self.cfg["standby_chat_onstart"]
+        else:
+            self.standby_chat_onstart = "False"
 
     def run(self):
         while not self.stop_now:
@@ -142,7 +152,8 @@ class YoutubeLive(Monitor):
                 for video_id in videodic_new:
                     if video_id not in self.videodic:
                         self.videodic[video_id] = videodic_new[video_id]
-                        if not self.is_firstrun or videodic_new[video_id]["video_status"] == "进行" :
+                        if not self.is_firstrun or videodic_new[video_id]["video_status"] == "进行" or \
+                                videodic_new[video_id]["video_status"] == "等待" and self.standby_chat_onstart == "True":
                             self.push(video_id)
                 self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
@@ -215,11 +226,12 @@ class YoutubeLive(Monitor):
                     writelog(self.logpath,
                              '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
         # 开始记录弹幕
-        if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "进行":
+        if self.videodic[video_id]["video_status"] == "等待" and self.standby_chat == "True" or self.videodic[video_id][
+            "video_status"] == "进行":
             monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
             if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                 self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
-                                                 "youtubechat_config", interval=4, tgt_channel=self.tgt)
+                                                 "youtubechat_config", interval=3, tgt_channel=self.tgt)
                 self.checksubmonitor()
                 printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                 writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -233,7 +245,7 @@ class YoutubeLive(Monitor):
                 writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
-# vip=userchannel, word=text, punish=tgt+push
+# vip=userchannel, word=text, punish=tgt+push(不包括含有'vip'的类型)
 class YoutubeChat(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -277,6 +289,16 @@ class YoutubeChat(Monitor):
                             time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(chat["chat_timestamp"])),
                             chat["chat_username"], chat["chat_userchannel"], chat["chat_type"], chat["chat_text"]))
                         self.push(chat)
+
+                    # 目标每次请求获取5条评论，间隔时间应在0.1~3秒之间
+                    if len(chatlist) > 0:
+                        self.cfg["interval"] = self.cfg["interval"] * 5 / len(chatlist)
+                    else:
+                        self.cfg["interval"] = 3
+                    if self.cfg["interval"] > 3:
+                        self.cfg["interval"] = 3
+                    if self.cfg["interval"] < 0.1:
+                        self.cfg["interval"] = 0.1
                 else:
                     printlog('[Error] "%s" getyoutubechatlist %s' % (self.name, self.continuation))
                     writelog(self.logpath, '[Error] "%s" getyoutubechatlist %s' % (self.name, self.continuation))
@@ -286,12 +308,13 @@ class YoutubeChat(Monitor):
         pushcolor_vipdic = getpushcolordic(chat["chat_userchannel"], self.cfg["vip_dic"])
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.cfg["word_dic"])
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
+
         if pushcolor_dic:
             # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
             for color in self.pushpunish:
-                if color in pushcolor_dic:
-                    pushcolor_dic[color] -= self.pushpunish[color]
+                if color in pushcolor_dic and not color.count("vip"):
+                    if pushcolor_dic[color] <= self.pushpunish[color]:
+                        pushcolor_dic[color] -= self.pushpunish[color]
 
             pushtext = "【%s %s 直播评论】\n用户：%s\n内容：%s\n类型：%s\n网址：https://www.youtube.com/watch?v=%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_text"], chat["chat_type"],
@@ -302,7 +325,7 @@ class YoutubeChat(Monitor):
 
             # 更新pushpunish
             for color in pushcolor_dic:
-                if pushcolor_dic[color] > 0:
+                if pushcolor_dic[color] > 0 and not color.count("vip"):
                     if color in self.pushpunish:
                         self.pushpunish[color] += 1
                     else:
@@ -345,7 +368,7 @@ class YoutubeCom(Monitor):
         pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
         pushcolor_worddic = getpushcolordic(postdic[post_id]["post_text"], self.cfg["word_dic"])
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
+
         # 进行推送
         if pushcolor_dic:
             pushtext = "【%s %s 社区帖子】\n内容：%s\n时间：%s\n网址：https://www.youtube.com/post/%s" % (
@@ -404,7 +427,7 @@ class YoutubeNote(Monitor):
     def push(self, note_id):
         pushcolor_worddic = getpushcolordic(self.notedic[note_id]["note_text"], self.cfg["word_dic"])
         pushcolor_dic = pushcolor_worddic
-        
+
         if pushcolor_dic:
             pushtext = "【%s %s 订阅通知】\n内容：%s\n时间：%s\n网址：https://www.youtube.com/watch?v=%s" % (
                 self.__class__.__name__, self.tgt_name, self.notedic[note_id]["note_text"],
@@ -457,7 +480,7 @@ class TwitterUser(Monitor):
     def push(self, pushtext_body):
         pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
         pushcolor_dic = pushcolor_vipdic
-        
+
         if pushcolor_dic:
             pushtext = "【%s %s 数据改变】\n%s\n网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
@@ -518,11 +541,11 @@ class TwitterTweet(Monitor):
                                            self.cfg["vip_dic"])
         pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.cfg["word_dic"])
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
+
         if pushcolor_dic:
-            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n时间：%s\n网址：https://twitter.com/%s/status/%s" % (
+            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/%s/status/%s" % (
                 self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
-                tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"],
+                tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), self.tgt,
                 tweet_id)
             pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
@@ -530,7 +553,7 @@ class TwitterTweet(Monitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt+mention, word=text
+# vip=tgt+mention, word=text, only_live="True"/"False", only_liveorvideo="True"/"False"
 class TwitterSearch(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -544,6 +567,16 @@ class TwitterSearch(Monitor):
 
         self.is_firstrun = True
         self.tweetlist = []
+        # 是否只推送有链接指向正在进行的youtube直播的推文
+        if "only_live" in self.cfg:
+            self.only_live = self.cfg["only_live"]
+        else:
+            self.only_live = "False"
+        # 是否只推送有链接指向youtube直播或视频的推文
+        if "only_liveorvideo" in self.cfg:
+            self.only_liveorvideo = self.cfg["only_liveorvideo"]
+        else:
+            self.only_liveorvideo = "False"
 
     def run(self):
         while not self.stop_now:
@@ -563,19 +596,41 @@ class TwitterSearch(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, tweet_id, tweetdic):
-        pushcolor_vipdic = getpushcolordic("%s\n%s" % (self.tgt, tweetdic[tweet_id]['tweet_mention']),
-                                           self.cfg["vip_dic"])
-        pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.cfg["word_dic"])
-        pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
-        if pushcolor_dic:
-            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n时间：%s\n网址：https://twitter.com/a/status/%s" % (
-                self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
-                tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"],
-                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
-            pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
-            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+        # 检测是否有链接指向正在进行的直播
+        if self.only_live == "True":
+            is_live = False
+            for url in tweetdic[tweet_id]["tweet_urls"]:
+                if url.count("https://youtu.be/"):
+                    if getyoutubevideostatus(url.replace("https://youtu.be/", "")) == "进行":
+                        is_live = True
+                        break
+        else:
+            is_live = True
+
+        # 检测是否有链接指向直播或视频
+        if self.only_liveorvideo == "True":
+            is_liveorvideo = False
+            for url in tweetdic[tweet_id]["tweet_urls"]:
+                if url.count("https://youtu.be/"):
+                    is_liveorvideo = True
+                    break
+        else:
+            is_liveorvideo = True
+
+        if is_live and is_liveorvideo:
+            pushcolor_vipdic = getpushcolordic("%s\n%s" % (self.tgt, tweetdic[tweet_id]['tweet_mention']),
+                                               self.cfg["vip_dic"])
+            pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.cfg["word_dic"])
+            pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
+
+            if pushcolor_dic:
+                pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/a/status/%s" % (
+                    self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
+                    tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
+                    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
+                pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
+                printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
 # vip=tgt
@@ -607,7 +662,7 @@ class TwitcastLive(Monitor):
                             if self.livedic[live_id_old]:
                                 self.livedic[live_id_old] = False
                                 self.push(live_id_old)
-                    
+
                     if live_id not in self.livedic:
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
@@ -624,7 +679,7 @@ class TwitcastLive(Monitor):
         if self.livedic[live_id]:
             pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
             pushcolor_dic = pushcolor_vipdic
-            
+
             if pushcolor_dic:
                 pushtext = "【%s %s TC开播】\n网址：https://twitcasting.tv/%s" % (
                     self.__class__.__name__, self.tgt_name, self.tgt)
@@ -636,7 +691,7 @@ class TwitcastLive(Monitor):
             monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
             if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                 self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
-                                                 "twitcastchat_config", interval=4, tgt_channel=self.tgt)
+                                                 "twitcastchat_config", interval=3, tgt_channel=self.tgt)
                 self.checksubmonitor()
                 printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                 writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -650,7 +705,7 @@ class TwitcastLive(Monitor):
                 writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
-# vip=chat_screenname, word=text, punish=tgt+push
+# vip=chat_screenname, word=text, punish=tgt+push(不包括含有'vip'的类型)
 class TwitcastChat(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -682,6 +737,16 @@ class TwitcastChat(Monitor):
                                           time.localtime(round(int(chat["chat_timestamp"]) / 1000))),
                             chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
                         self.push(chat)
+
+                # 目标每次请求获取5条评论，间隔时间应在0.1~3秒之间
+                if len(chatlist) > 0:
+                    self.cfg["interval"] = self.cfg["interval"] * 5 / len(chatlist)
+                else:
+                    self.cfg["interval"] = 3
+                if self.cfg["interval"] > 3:
+                    self.cfg["interval"] = 3
+                if self.cfg["interval"] < 0.1:
+                    self.cfg["interval"] = 0.1
             else:
                 printlog('[Error] "%s" gettwitcastchatlist %s' % (self.name, self.chat_id_old))
                 writelog(self.logpath, '[Error] "%s" gettwitcastchatlist %s' % (self.name, self.chat_id_old))
@@ -691,12 +756,13 @@ class TwitcastChat(Monitor):
         pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.cfg["vip_dic"])
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.cfg["word_dic"])
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
+
         if pushcolor_dic:
             # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
             for color in self.pushpunish:
-                if color in pushcolor_dic:
-                    pushcolor_dic[color] -= self.pushpunish[color]
+                if color in pushcolor_dic and not color.count("vip"):
+                    if pushcolor_dic[color] <= self.pushpunish[color]:
+                        pushcolor_dic[color] -= self.pushpunish[color]
 
             pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n网址：https://twitcasting.tv/%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_name"], chat["chat_screenname"], chat["chat_text"],
@@ -707,10 +773,11 @@ class TwitcastChat(Monitor):
 
             # 更新pushpunish
             for color in pushcolor_dic:
-                if color in self.pushpunish:
-                    self.pushpunish[color] += 1
-                else:
-                    self.pushpunish[color] = 1
+                if pushcolor_dic[color] > 0 and not color.count("vip"):
+                    if color in self.pushpunish:
+                        self.pushpunish[color] += 1
+                    else:
+                        self.pushpunish[color] = 1
 
 
 # vip=tgt
@@ -756,7 +823,7 @@ class FanboxUser(Monitor):
     def push(self, pushtext_body):
         pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
         pushcolor_dic = pushcolor_vipdic
-        
+
         if pushcolor_dic:
             pushtext = "【%s %s 数据改变】\n%s\n网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
@@ -801,7 +868,7 @@ class FanboxPost(Monitor):
         pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
         pushcolor_worddic = getpushcolordic(postdic[post_id]["post_text"], self.cfg["word_dic"])
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
+
         if pushcolor_dic:
             pushtext = "【%s %s 社区帖子】\n内容：%s\n类型：%s\n档位：%s\n时间：%s\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_text"][0:3000],
@@ -862,7 +929,7 @@ def getyoutubevideostatus(video_id):
         response = requests.get(url, stream=True, timeout=(3, 7))
         if response.status_code == 200:
             try:
-                if response.json()["stop_heartbeat"] == 1:
+                if response.json()["stop_heartbeat"] == "1":
                     video_status = "结束"
                     return video_status
                 else:
@@ -944,7 +1011,7 @@ def getyoutubechatlist(continuation):
         params = (
             ('commandMetadata', '[object Object]'),
             ('continuation', continuation),
-            ('hidden', 'true'),
+            ('hidden', 'false'),
             ('pbj', '1'),
         )
         response = requests.get(url, headers=headers, params=params, timeout=(3, 7))
@@ -1180,16 +1247,24 @@ def gettwittertweetdic(user_restid, cookies):
                         else:
                             tweet_type = "发布"
                         if 'media' in tweetlist_dic[tweet_id]['entities']:
-                            tweet_media = "有"
+                            tweet_media = []
+                            for media in tweetlist_dic[tweet_id]['entities']['media']:
+                                tweet_media.append(media['expanded_url'])
                         else:
                             tweet_media = "无"
+                        if 'urls' in tweetlist_dic[tweet_id]['entities']:
+                            tweet_urls = []
+                            for url in tweetlist_dic[tweet_id]['entities']['urls']:
+                                tweet_urls.append(url['expanded_url'])
+                        else:
+                            tweet_urls = "无"
                         tweet_mention = ""
                         if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
                             for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
                                 tweet_mention += "%s\n" % user_mention['screen_name']
                         tweet_dic[tweet_id] = {"tweet_timestamp": tweet_timestamp, "tweet_text": tweet_text,
                                                "tweet_type": tweet_type, "tweet_media": tweet_media,
-                                               "tweet_mention": tweet_mention}
+                                               "tweet_urls": tweet_urls, "tweet_mention": tweet_mention}
                 except:
                     continue
             return tweet_dic
@@ -1262,16 +1337,24 @@ def gettwittersearchdic(qword, cookies):
                     else:
                         tweet_type = "发布"
                     if 'media' in tweetlist_dic[tweet_id]['entities']:
-                        tweet_media = "有"
+                        tweet_media = []
+                        for media in tweetlist_dic[tweet_id]['entities']['media']:
+                            tweet_media.append(media['expanded_url'])
                     else:
                         tweet_media = "无"
+                    if 'urls' in tweetlist_dic[tweet_id]['entities']:
+                        tweet_urls = []
+                        for url in tweetlist_dic[tweet_id]['entities']['urls']:
+                            tweet_urls.append(url['expanded_url'])
+                    else:
+                        tweet_urls = "无"
                     tweet_mention = ""
-                    if tweetlist_dic[tweet_id]['entities']['user_mentions']:
+                    if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
                         for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
                             tweet_mention += "%s\n" % user_mention['screen_name']
                     tweet_dic[tweet_id] = {"tweet_timestamp": tweet_timestamp, "tweet_text": tweet_text,
                                            "tweet_type": tweet_type, "tweet_media": tweet_media,
-                                           "tweet_mention": tweet_mention}
+                                           "tweet_urls": tweet_urls, "tweet_mention": tweet_mention}
                 except:
                     continue
             return tweet_dic
