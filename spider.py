@@ -1256,18 +1256,14 @@ def gettwittertweetdic(user_restid, cookies):
                             tweet_type = "回复"
                         else:
                             tweet_type = "发布"
+                        tweet_media = []
                         if 'media' in tweetlist_dic[tweet_id]['entities']:
-                            tweet_media = []
                             for media in tweetlist_dic[tweet_id]['entities']['media']:
                                 tweet_media.append(media['expanded_url'])
-                        else:
-                            tweet_media = "无"
+                        tweet_urls = []
                         if 'urls' in tweetlist_dic[tweet_id]['entities']:
-                            tweet_urls = []
                             for url in tweetlist_dic[tweet_id]['entities']['urls']:
                                 tweet_urls.append(url['expanded_url'])
-                        else:
-                            tweet_urls = "无"
                         tweet_mention = ""
                         if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
                             for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
@@ -1346,18 +1342,14 @@ def gettwittersearchdic(qword, cookies):
                         tweet_type = "回复"
                     else:
                         tweet_type = "发布"
+                    tweet_media = []
                     if 'media' in tweetlist_dic[tweet_id]['entities']:
-                        tweet_media = []
                         for media in tweetlist_dic[tweet_id]['entities']['media']:
                             tweet_media.append(media['expanded_url'])
-                    else:
-                        tweet_media = "无"
+                    tweet_urls = []
                     if 'urls' in tweetlist_dic[tweet_id]['entities']:
-                        tweet_urls = []
                         for url in tweetlist_dic[tweet_id]['entities']['urls']:
                             tweet_urls.append(url['expanded_url'])
-                    else:
-                        tweet_urls = "无"
                     tweet_mention = ""
                     if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
                         for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
