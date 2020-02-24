@@ -51,7 +51,7 @@
 	"twitter": {
 		"interval": 180,
 		"submonitor_dic": {
-			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
+			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "True"},
 			"TwitterTweet 神楽めあ": {"class": "TwitterTweet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
 			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
 			"TwitterTweet 湊あくあ": {"class": "TwitterTweet", "target": "minatoaqua", "target_name": "湊あくあ", "config_name": "twitter_config"},
