@@ -273,10 +273,10 @@ class YoutubeChat(Monitor):
             if not self.continuation:
                 self.continuation = getyoutubechatcontinuation(self.tgt)
                 if self.continuation:
-                    writelog(self.logpath, '[Success] "%s" getyoutubechatcontinuation' % self.name)
+                    writelog(self.logpath, '[Success] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                 else:
                     printlog('[Error] "%s" getyoutubechatcontinuation' % self.name)
-                    writelog(self.logpath, '[Error] "%s" getyoutubechatcontinuation' % self.name)
+                    writelog(self.logpath, '[Error] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                     time.sleep(5)
                     continue
 
@@ -350,7 +350,7 @@ class YoutubeCom(Monitor):
     def run(self):
         while not self.stop_now:
             # 获取帖子列表
-            postdic_new = getyoutubepostdic(self.tgt, self.cfg["cookies"])
+            postdic_new = getyoutubepostdic(self.tgt, self.cookies)
             if isinstance(postdic_new, dict):
                 for post_id in postdic_new:
                     if post_id not in self.postlist:
@@ -401,10 +401,10 @@ class YoutubeNote(Monitor):
             if not self.token:
                 self.token = getyoutubetoken(self.cookies)
                 if self.token:
-                    writelog(self.logpath, '[Success] "%s" getyoutubetoken' % self.name)
+                    writelog(self.logpath, '[Success] "%s" getyoutubetoken %s' % (self.name, self.tgt))
                 else:
                     printlog('[Error] "%s" getyoutubetoken' % self.name)
-                    writelog(self.logpath, '[Error] "%s" getyoutubetoken' % self.name)
+                    writelog(self.logpath, '[Error] "%s" getyoutubetoken %s' % (self.name, self.tgt))
                     time.sleep(5)
                     continue
 
@@ -478,13 +478,13 @@ class TwitterUser(Monitor):
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
-                writelog(self.logpath, '[Success] "%s" gettwitteruser' % self.name)
+                writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
 
                 if pushtext_body:
                     self.push(pushtext_body)
             else:
                 printlog('[Error] "%s" gettwitteruser' % self.name)
-                writelog(self.logpath, '[Error] "%s" gettwitteruser' % self.name)
+                writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
             time.sleep(self.cfg["interval"])
 
     def push(self, pushtext_body):
@@ -522,10 +522,10 @@ class TwitterTweet(Monitor):
                 tgt_dic = gettwitteruser(self.tgt, self.cookies)
                 if isinstance(tgt_dic, dict):
                     self.tgt_restid = tgt_dic["user_restid"]
-                    writelog(self.logpath, '[Success] "%s" gettwitteruser' % self.name)
+                    writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
                 else:
                     printlog('[Error] "%s" gettwitteruser' % self.name)
-                    writelog(self.logpath, '[Error] "%s" gettwitteruser' % self.name)
+                    writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
                     time.sleep(5)
                     continue
 
@@ -539,10 +539,10 @@ class TwitterTweet(Monitor):
                             if not self.is_firstrun:
                                 self.push(tweet_id, tweetdic_new)
                     self.is_firstrun = False
-                    writelog(self.logpath, '[Success] "%s" gettwittertweetdic' % self.name)
+                    writelog(self.logpath, '[Success] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
                 else:
                     printlog('[Error] "%s" gettwittertweetdic' % self.name)
-                    writelog(self.logpath, '[Error] "%s" gettwittertweetdic' % self.name)
+                    writelog(self.logpath, '[Error] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
             time.sleep(self.cfg["interval"])
 
     def push(self, tweet_id, tweetdic):
@@ -553,7 +553,7 @@ class TwitterTweet(Monitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/%s/status/%s" % (
+            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s (GMT)\n网址：https://twitter.com/%s/status/%s" % (
                 self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
                 tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), self.tgt,
@@ -599,10 +599,10 @@ class TwitterSearch(Monitor):
                         if not self.is_firstrun:
                             self.push(tweet_id, tweetdic_new)
                 self.is_firstrun = False
-                writelog(self.logpath, '[Success] "%s" gettwittersearchdic' % self.name)
+                writelog(self.logpath, '[Success] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
             else:
                 printlog('[Error] "%s" gettwittersearchdic' % self.name)
-                writelog(self.logpath, '[Error] "%s" gettwittersearchdic' % self.name)
+                writelog(self.logpath, '[Error] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
             time.sleep(self.cfg["interval"])
 
     def push(self, tweet_id, tweetdic):
@@ -634,7 +634,7 @@ class TwitterSearch(Monitor):
             pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             if pushcolor_dic:
-                pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/a/status/%s" % (
+                pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s (GMT)\n网址：https://twitter.com/a/status/%s" % (
                     self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
                     tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
                     time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
@@ -679,10 +679,10 @@ class TwitcastLive(Monitor):
                     elif self.livedic[live_id] != livedic_new[live_id]:
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
-                writelog(self.logpath, '[Success] "%s" gettwitcastlive' % self.name)
+                writelog(self.logpath, '[Success] "%s" gettwitcastlive %s' % (self.name, self.tgt))
             else:
                 printlog('[Error] "%s" gettwitcastlive' % self.name)
-                writelog(self.logpath, '[Error] "%s" gettwitcastlive' % self.name)
+                writelog(self.logpath, '[Error] "%s" gettwitcastlive %s' % (self.name, self.tgt))
             time.sleep(self.cfg["interval"])
 
     def push(self, live_id):
@@ -821,13 +821,13 @@ class FanboxUser(Monitor):
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
                                 key, str(self.userdata_dic[key])[0:1300], str(user_datadic_new[key])[0:1300])
                             self.userdata_dic[key] = user_datadic_new[key]
-                writelog(self.logpath, '[Success] "%s" getfanboxuser' % self.name)
+                writelog(self.logpath, '[Success] "%s" getfanboxuser %s' % (self.name, self.tgt))
 
                 if pushtext_body:
                     self.push(pushtext_body)
             else:
                 printlog('[Error] "%s" getfanboxuser' % self.name)
-                writelog(self.logpath, '[Error] "%s" getfanboxuser' % self.name)
+                writelog(self.logpath, '[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
             time.sleep(self.cfg["interval"])
 
     def push(self, pushtext_body):
@@ -860,7 +860,7 @@ class FanboxPost(Monitor):
     def run(self):
         while not self.stop_now:
             # 获取帖子列表
-            postdic_new = getfanboxpostdic(self.tgt, self.cfg["cookies"])
+            postdic_new = getfanboxpostdic(self.tgt, self.cookies)
             if isinstance(postdic_new, dict):
                 for post_id in postdic_new:
                     if post_id not in self.postlist:
@@ -880,7 +880,7 @@ class FanboxPost(Monitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 社区帖子】\n内容：%s\n类型：%s\n档位：%s\n时间：%s\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
+            pushtext = "【%s %s 社区帖子】\n内容：%s\n类型：%s\n档位：%s\n时间：%s (GMT)\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_text"][0:3000],
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(postdic[post_id]["post_publishtimestamp"]))
@@ -1471,8 +1471,11 @@ def getfanboxpostdic(user_id, cookies):
                 try:
                     post_id = post['id']
                     post_title = post['title']
-                    post_publishtimestamp = round(
-                        time.mktime(time.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z")))
+                    try:
+                        post_publishtimestamp = round(
+                            time.mktime(time.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z")))
+                    except:
+                        post_publishtimestamp = round(time.time())
                     post_type = post['type']
                     post_text = ""
                     if post['body']:
