@@ -9,7 +9,7 @@ import requests
 import json
 from bs4 import BeautifulSoup
 import lxml
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 
 class Monitor(threading.Thread):
@@ -190,9 +190,9 @@ class YoutubeLive(Monitor):
                 video_description = ""
 
             # 计算推送力度
-            pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
+            pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
             pushcolor_worddic = getpushcolordic("%s\n%s" % (self.videodic[video_id]["video_title"], video_description),
-                                                self.cfg["word_dic"])
+                                                self.word_dic)
             pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             # 进行推送
@@ -263,9 +263,9 @@ class YoutubeChat(Monitor):
         self.continuation = False
         self.pushpunish = {}
         self.tgt_channel = self.cfg["tgt_channel"]
-        if self.tgt_channel in self.cfg["vip_dic"]:
-            for color in self.cfg["vip_dic"][self.tgt_channel]:
-                self.pushpunish[color] = self.cfg["vip_dic"][self.tgt_channel][color]
+        if self.tgt_channel in self.vip_dic:
+            for color in self.vip_dic[self.tgt_channel]:
+                self.pushpunish[color] = self.vip_dic[self.tgt_channel][color]
 
     def run(self):
         while not self.stop_now:
@@ -305,8 +305,8 @@ class YoutubeChat(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, chat):
-        pushcolor_vipdic = getpushcolordic(chat["chat_userchannel"], self.cfg["vip_dic"])
-        pushcolor_worddic = getpushcolordic(chat["chat_text"], self.cfg["word_dic"])
+        pushcolor_vipdic = getpushcolordic(chat["chat_userchannel"], self.vip_dic)
+        pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
@@ -365,8 +365,8 @@ class YoutubeCom(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, post_id, postdic):
-        pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
-        pushcolor_worddic = getpushcolordic(postdic[post_id]["post_text"], self.cfg["word_dic"])
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+        pushcolor_worddic = getpushcolordic(postdic[post_id]["post_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         # 进行推送
@@ -488,7 +488,7 @@ class TwitterUser(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, pushtext_body):
-        pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
@@ -548,8 +548,8 @@ class TwitterTweet(Monitor):
     def push(self, tweet_id, tweetdic):
         # 获取用户推特时大小写不敏感，但检测用户和提及的时候大小写敏感
         pushcolor_vipdic = getpushcolordic("%s\n%s" % (self.tgt, tweetdic[tweet_id]['tweet_mention']),
-                                           self.cfg["vip_dic"])
-        pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.cfg["word_dic"])
+                                           self.vip_dic)
+        pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
@@ -629,14 +629,15 @@ class TwitterSearch(Monitor):
 
         if is_live and is_liveorvideo:
             pushcolor_vipdic = getpushcolordic("%s\n%s" % (self.tgt, tweetdic[tweet_id]['tweet_mention']),
-                                               self.cfg["vip_dic"])
-            pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.cfg["word_dic"])
+                                               self.vip_dic)
+            pushcolor_worddic = getpushcolordic(tweetdic[tweet_id]['tweet_text'], self.word_dic)
             pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             if pushcolor_dic:
                 pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s (GMT)\n网址：https://twitter.com/a/status/%s" % (
                     self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
-                    tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
+                    tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"],
+                    tweetdic[tweet_id]["tweet_urls"],
                     time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
                 pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -667,16 +668,16 @@ class TwitcastLive(Monitor):
             livedic_new = gettwitcastlive(self.tgt)
             if isinstance(livedic_new, dict):
                 for live_id in livedic_new:
-                    if live_id not in self.livedic or not livedic_new[live_id]:
+                    if live_id not in self.livedic or not livedic_new[live_id]["live_status"]:
                         for live_id_old in self.livedic:
-                            if self.livedic[live_id_old]:
-                                self.livedic[live_id_old] = False
+                            if self.livedic[live_id_old]["live_status"]:
+                                self.livedic[live_id_old]["live_status"] = False
                                 self.push(live_id_old)
 
                     if live_id not in self.livedic:
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
-                    elif self.livedic[live_id] != livedic_new[live_id]:
+                    elif self.livedic[live_id]["live_status"] != livedic_new[live_id]["live_status"]:
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
                 writelog(self.logpath, '[Success] "%s" gettwitcastlive %s' % (self.name, self.tgt))
@@ -686,13 +687,14 @@ class TwitcastLive(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, live_id):
-        if self.livedic[live_id]:
-            pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
-            pushcolor_dic = pushcolor_vipdic
+        if self.livedic[live_id]["live_status"]:
+            pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+            pushcolor_worddic = getpushcolordic(self.livedic[live_id]["live_title"], self.word_dic)
+            pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             if pushcolor_dic:
-                pushtext = "【%s %s TC开播】\n网址：https://twitcasting.tv/%s" % (
-                    self.__class__.__name__, self.tgt_name, self.tgt)
+                pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://twitcasting.tv/%s" % (
+                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_title"], self.tgt)
                 pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -730,9 +732,9 @@ class TwitcastChat(Monitor):
         self.chat_id_old = 0
         self.pushpunish = {}
         self.tgt_channel = self.cfg["tgt_channel"]
-        if self.tgt_channel in self.cfg["vip_dic"]:
-            for color in self.cfg["vip_dic"][self.tgt_channel]:
-                self.pushpunish[color] = self.cfg["vip_dic"][self.tgt_channel][color]
+        if self.tgt_channel in self.vip_dic:
+            for color in self.vip_dic[self.tgt_channel]:
+                self.pushpunish[color] = self.vip_dic[self.tgt_channel][color]
 
     def run(self):
         while not self.stop_now:
@@ -763,8 +765,8 @@ class TwitcastChat(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, chat):
-        pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.cfg["vip_dic"])
-        pushcolor_worddic = getpushcolordic(chat["chat_text"], self.cfg["word_dic"])
+        pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
+        pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
@@ -831,7 +833,7 @@ class FanboxUser(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, pushtext_body):
-        pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
@@ -875,8 +877,8 @@ class FanboxPost(Monitor):
             time.sleep(self.cfg["interval"])
 
     def push(self, post_id, postdic):
-        pushcolor_vipdic = getpushcolordic(self.tgt, self.cfg["vip_dic"])
-        pushcolor_worddic = getpushcolordic(postdic[post_id]["post_text"], self.cfg["word_dic"])
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+        pushcolor_worddic = getpushcolordic(postdic[post_id]["post_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
@@ -1031,7 +1033,6 @@ def getyoutubechatlist(continuation):
             if 'actions' in chatlist_json:
                 for chat in chatlist_json['actions']:
                     try:
-                        chat_dic = {}
                         if 'liveChatTextMessageRenderer' in chat['addChatItemAction']['item']:
                             chat_type = 'message'
                             chat_dic = chat['addChatItemAction']['item']['liveChatTextMessageRenderer']
@@ -1044,7 +1045,10 @@ def getyoutubechatlist(continuation):
                         elif 'liveChatMembershipItemRenderer' in chat['addChatItemAction']['item']:
                             chat_type = 'membership'
                             chat_dic = chat['addChatItemAction']['item']['liveChatMembershipItemRenderer']
-                            
+                        else:
+                            chat_type = ''
+                            chat_dic = {}
+
                         if chat_dic:
                             chat_timestamp = round(int(chat_dic['timestampUsec']) / 1000000)
                             chat_username = chat_dic['authorName']['simpleText']
@@ -1373,15 +1377,18 @@ def gettwittersearchdic(qword, cookies):
 def gettwitcastlive(user_id):
     try:
         live_dic = {}
-        url = 'https://twitcasting.tv/streamserver.php?target=%s&mode=client' % user_id
+        url = 'https://twitcasting.tv/streamchecker.php?u=%s&v=999' % user_id
         response = requests.get(url, timeout=(3, 7))
         if response.status_code == 200:
-            try:
-                live_dic[response.json()["movie"]["id"]] = response.json()["movie"]["live"]
-                return live_dic
-            except:
-                live_dic = {"0": False}
-                return live_dic
+            live = response.text.split("\t")
+            live_id = live[0]
+            if live_id:
+                live_status = True
+            else:
+                live_status = False
+            live_title = unquote(live[7])
+            live_dic[live_id] = {"live_status": live_status, "live_title": live_title}
+            return live_dic
         else:
             return False
     except:
