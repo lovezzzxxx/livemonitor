@@ -1033,27 +1033,31 @@ def getyoutubechatlist(continuation):
                     try:
                         chat_dic = {}
                         if 'liveChatTextMessageRenderer' in chat['addChatItemAction']['item']:
+                            chat_type = 'message'
                             chat_dic = chat['addChatItemAction']['item']['liveChatTextMessageRenderer']
                         elif 'liveChatPaidMessageRenderer' in chat['addChatItemAction']['item']:
+                            chat_type = 'superchat'
                             chat_dic = chat['addChatItemAction']['item']['liveChatPaidMessageRenderer']
+                        elif 'liveChatPaidStickerRenderer' in chat['addChatItemAction']['item']:
+                            chat_type = 'supersticker'
+                            chat_dic = chat['addChatItemAction']['item']['liveChatPaidStickerRenderer']
+                        elif 'liveChatMembershipItemRenderer' in chat['addChatItemAction']['item']:
+                            chat_type = 'membership'
+                            chat_dic = chat['addChatItemAction']['item']['liveChatMembershipItemRenderer']
+                            
                         if chat_dic:
                             chat_timestamp = round(int(chat_dic['timestampUsec']) / 1000000)
                             chat_username = chat_dic['authorName']['simpleText']
                             chat_userchannel = chat_dic['authorExternalChannelId']
-                            chat_type = ''
                             chat_text = ''
                             if 'message' in chat_dic:
-                                chat_type = 'message'
                                 for chat_text_run in chat_dic['message']['runs']:
                                     if 'text' in chat_text_run:
                                         chat_text += chat_text_run['text']
                                     elif 'emoji' in chat_text_run:
                                         chat_text += chat_text_run['emoji']['shortcuts'][0]
-                            elif 'sticker' in chat_dic:
-                                chat_type = 'supersticker'
-                                chat_text = chat_dic['sticker']['accessibility']['accessibilityData']['label']
                             if 'purchaseAmountText' in chat_dic:
-                                chat_type = 'superchat %s' % chat_dic['purchaseAmountText']['simpleText']
+                                chat_type += ' %s' % chat_dic['purchaseAmountText']['simpleText']
                             chatlist.append({"chat_timestamp": chat_timestamp, "chat_username": chat_username,
                                              "chat_userchannel": chat_userchannel, "chat_type": chat_type,
                                              "chat_text": chat_text})
