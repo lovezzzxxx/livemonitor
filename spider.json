@@ -41,6 +41,7 @@
 				"メアリ": {"mea": -1}
 			},
 			"cookies": {},
+			"proxy": {},
 			"push_dic": {
 				"pushlist_qq": [
 					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}}
@@ -89,6 +90,7 @@
 				"めあArt": {"mea": -10, "mea_art": 2}
 			},
 			"cookies": {},
+			"proxy": {},
 			"push_dic": {
 				"pushlist_qq": [
 					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1, "mea_art": 1}}
@@ -109,6 +111,7 @@
 			},
 			"word_dic": {},
 			"cookies": {},
+			"proxy": {},
 			"push_dic": {
 				"pushlist_qq": [
 					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}}
