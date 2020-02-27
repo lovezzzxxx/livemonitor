@@ -23,6 +23,7 @@ class SubMonitor(threading.Thread):
         self.vip_dic = {}
         self.word_dic = {}
         self.cookies = {}
+        self.proxy = {}
         self.push_dic = {}
         # 不要直接修改通过cfg引用传递定义的列表和变量，请deepcopy后再修改
         for var in cfg:
@@ -173,7 +174,7 @@ class YoutubeLive(Monitor):
     def run(self):
         while not self.stop_now:
             # 更新视频列表
-            videodic_new = getyoutubevideodic(self.tgt)
+            videodic_new = getyoutubevideodic(self.tgt, self.proxy)
             if isinstance(videodic_new, dict):
                 for video_id in videodic_new:
                     if video_id not in self.videodic:
@@ -190,7 +191,7 @@ class YoutubeLive(Monitor):
             # 更新视频状态
             for video_id in self.videodic:
                 if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "进行":
-                    video_status = getyoutubevideostatus(video_id)
+                    video_status = getyoutubevideostatus(video_id, self.proxy)
                     if video_status:
                         if self.videodic[video_id]["video_status"] != video_status:
                             self.videodic[video_id]["video_status"] = video_status
@@ -206,7 +207,7 @@ class YoutubeLive(Monitor):
                 self.videodic[video_id]["video_type"] == "视频" and self.videodic[video_id]["video_status"] == "结束":
 
             # 获取视频简介
-            video_description = getyoutubevideodescription(video_id)
+            video_description = getyoutubevideodescription(video_id, self.proxy)
             if isinstance(video_description, str):
                 writelog(self.logpath,
                          '[Success] "%s" getyoutubevideodescription %s' % (self.name, video_id))
@@ -298,7 +299,7 @@ class YoutubeChat(SubMonitor):
         while not self.stop_now:
             # 获取continuation
             if not self.continuation:
-                self.continuation = getyoutubechatcontinuation(self.tgt)
+                self.continuation = getyoutubechatcontinuation(self.tgt, self.proxy)
                 if self.continuation:
                     writelog(self.logpath, '[Success] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                 else:
@@ -309,7 +310,7 @@ class YoutubeChat(SubMonitor):
 
             # 获取直播评论列表
             if self.continuation:
-                chatlist, self.continuation = getyoutubechatlist(self.continuation)
+                chatlist, self.continuation = getyoutubechatlist(self.continuation, self.proxy)
                 if isinstance(chatlist, list):
                     for chat in chatlist:
                         writelog(self.logpath, "%s\t%s(%s)\t(%s)%s" % (
@@ -375,7 +376,7 @@ class YoutubeCom(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取帖子列表
-            postdic_new = getyoutubepostdic(self.tgt, self.cookies)
+            postdic_new = getyoutubepostdic(self.tgt, self.cookies, self.proxy)
             if isinstance(postdic_new, dict):
                 for post_id in postdic_new:
                     if post_id not in self.postlist:
@@ -422,7 +423,7 @@ class YoutubeNote(SubMonitor):
         while not self.stop_now:
             # 获取token
             if not self.token:
-                self.token = getyoutubetoken(self.cookies)
+                self.token = getyoutubetoken(self.cookies, self.proxy)
                 if self.token:
                     writelog(self.logpath, '[Success] "%s" getyoutubetoken %s' % (self.name, self.tgt))
                 else:
@@ -433,7 +434,7 @@ class YoutubeNote(SubMonitor):
 
             # 获取订阅通知列表
             if self.token:
-                notedic_new = getyoutubenotedic(self.token, self.cookies)
+                notedic_new = getyoutubenotedic(self.token, self.cookies, self.proxy)
                 if isinstance(notedic_new, dict):
                     if notedic_new:
                         if self.is_firstrun:
@@ -483,7 +484,7 @@ class TwitterUser(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = gettwitteruser(self.tgt, self.cookies)
+            user_datadic_new = gettwitteruser(self.tgt, self.cookies, self.proxy)
             if isinstance(user_datadic_new, dict):
                 pushtext_body = ""
                 if self.is_firstrun:
@@ -540,7 +541,7 @@ class TwitterTweet(SubMonitor):
         while not self.stop_now:
             # 获取用户restid
             if not self.tgt_restid:
-                tgt_dic = gettwitteruser(self.tgt, self.cookies)
+                tgt_dic = gettwitteruser(self.tgt, self.cookies, self.proxy)
                 if isinstance(tgt_dic, dict):
                     self.tgt_restid = tgt_dic["user_restid"]
                     writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
@@ -552,7 +553,7 @@ class TwitterTweet(SubMonitor):
 
             # 获取推特列表
             if self.tgt_restid:
-                tweetdic_new = gettwittertweetdic(self.tgt_restid, self.cookies)
+                tweetdic_new = gettwittertweetdic(self.tgt_restid, self.cookies, self.proxy)
                 if isinstance(tweetdic_new, dict):
                     if tweetdic_new:
                         if self.is_firstrun:
@@ -612,7 +613,7 @@ class TwitterSearch(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取推特列表
-            tweetdic_new = gettwittersearchdic(self.tgt, self.cookies)
+            tweetdic_new = gettwittersearchdic(self.tgt, self.cookies, self.proxy)
             if isinstance(tweetdic_new, dict):
                 if tweetdic_new:
                     if self.is_firstrun:
@@ -635,7 +636,7 @@ class TwitterSearch(SubMonitor):
             is_live = False
             for url in tweetdic[tweet_id]["tweet_urls"]:
                 if url.count("https://youtu.be/"):
-                    if getyoutubevideostatus(url.replace("https://youtu.be/", "")) == "进行":
+                    if getyoutubevideostatus(url.replace("https://youtu.be/", ""), self.proxy) == "进行":
                         is_live = True
                         break
         else:
@@ -686,7 +687,7 @@ class TwitcastLive(Monitor):
     def run(self):
         while not self.stop_now:
             # 获取直播状态
-            livedic_new = gettwitcastlive(self.tgt)
+            livedic_new = gettwitcastlive(self.tgt, self.proxy)
             if isinstance(livedic_new, dict):
                 for live_id in livedic_new:
                     if live_id not in self.livedic or not livedic_new[live_id]["live_status"]:
@@ -760,7 +761,7 @@ class TwitcastChat(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取直播评论列表
-            chatlist = gettwitcastchatlist(self.tgt)
+            chatlist = gettwitcastchatlist(self.tgt, self.proxy)
             if isinstance(chatlist, list):
                 for chat in chatlist:
                     # chatlist默认从小到大排列
@@ -829,7 +830,7 @@ class FanboxUser(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = getfanboxuser(self.tgt)
+            user_datadic_new = getfanboxuser(self.tgt, self.proxy)
             if isinstance(user_datadic_new, dict):
                 pushtext_body = ""
                 if self.is_firstrun:
@@ -878,7 +879,7 @@ class FanboxPost(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取帖子列表
-            postdic_new = getfanboxpostdic(self.tgt, self.cookies)
+            postdic_new = getfanboxpostdic(self.tgt, self.cookies, self.proxy)
             if isinstance(postdic_new, dict):
                 for post_id in postdic_new:
                     if post_id not in self.postlist:
@@ -908,11 +909,11 @@ class FanboxPost(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-def getyoutubevideodic(user_id):
+def getyoutubevideodic(user_id, proxy):
     try:
         videolist = {}
         url = "https://www.youtube.com/channel/%s/videos?view=57&flow=grid" % user_id
-        response = requests.get(url, stream=True, timeout=(3, 7))
+        response = requests.get(url, stream=True, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'lxml')
             videolist_all = soup.find_all(class_='yt-lockup-content')
@@ -951,10 +952,10 @@ def getyoutubevideodic(user_id):
         return False
 
 
-def getyoutubevideostatus(video_id):
+def getyoutubevideostatus(video_id, proxy):
     try:
         url = 'https://www.youtube.com/heartbeat?video_id=%s' % video_id
-        response = requests.get(url, stream=True, timeout=(3, 7))
+        response = requests.get(url, stream=True, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             try:
                 if response.json()["stop_heartbeat"] == "1":
@@ -980,10 +981,10 @@ def getyoutubevideostatus(video_id):
         return False
 
 
-def getyoutubevideodescription(video_id):
+def getyoutubevideodescription(video_id, proxy):
     try:
         url = 'https://www.youtube.com/watch?v=%s' % video_id
-        response = requests.get(url, stream=True, timeout=(3, 7))
+        response = requests.get(url, stream=True, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             video_description = re.findall(r'\\"description\\":{\\"simpleText\\":\\"([^"]*)\\"', response.text)[0]
             video_description = eval('"""{}"""'.format(video_description))
@@ -996,12 +997,12 @@ def getyoutubevideodescription(video_id):
         return False
 
 
-def getyoutubechatcontinuation(video_id):
+def getyoutubechatcontinuation(video_id, proxy):
     try:
         url = 'https://www.youtube.com/live_chat?is_popout=1&v=%s' % video_id
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
-        response = requests.get(url, headers=headers, timeout=(3, 7))
+        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             continuation = re.findall('"continuation":"([^"]*)"', response.text)[0]
             # 不可能为空 不可以为空
@@ -1012,7 +1013,7 @@ def getyoutubechatcontinuation(video_id):
         return False
 
 
-def getyoutubechatlist(continuation):
+def getyoutubechatlist(continuation, proxy):
     try:
         chatlist = []
         url = "https://www.youtube.com/live_chat/get_live_chat"
@@ -1042,7 +1043,7 @@ def getyoutubechatlist(continuation):
             ('hidden', 'false'),
             ('pbj', '1'),
         )
-        response = requests.get(url, headers=headers, params=params, timeout=(3, 7))
+        response = requests.get(url, headers=headers, params=params, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             continuation_new = re.findall('"continuation":"([^"]*)"', response.text)[0]
             chatlist_json = json.loads(response.text)['response']['continuationContents']['liveChatContinuation']
@@ -1091,7 +1092,7 @@ def getyoutubechatlist(continuation):
         return False, continuation
 
 
-def getyoutubepostdic(user_id, cookies):
+def getyoutubepostdic(user_id, cookies, proxy):
     try:
         postlist = {}
         url = 'https://www.youtube.com/channel/%s/community' % user_id
@@ -1099,7 +1100,7 @@ def getyoutubepostdic(user_id, cookies):
             'authority': 'www.youtube.com',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
         }
-        response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7))
+        response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             postpage_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
             postlist_json = postpage_json['contents']['twoColumnBrowseResultsRenderer']['tabs'][3]['tabRenderer'][
@@ -1125,11 +1126,11 @@ def getyoutubepostdic(user_id, cookies):
         return False
 
 
-def getyoutubetoken(cookies):
+def getyoutubetoken(cookies, proxy):
     try:
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
-        response = requests.get('https://www.youtube.com', headers=headers, cookies=cookies)
+        response = requests.get('https://www.youtube.com', headers=headers, cookies=cookies, proxies=proxy)
         if response.status_code == 200:
             token = re.findall('"XSRF_TOKEN":"([^"]*)"', response.text)[0]
             return token
@@ -1140,7 +1141,7 @@ def getyoutubetoken(cookies):
 
 
 # note_id为整数
-def getyoutubenotedic(token, cookies):
+def getyoutubenotedic(token, cookies, proxy):
     try:
         youtubenotedic = {}
         headers = {
@@ -1154,7 +1155,7 @@ def getyoutubenotedic(token, cookies):
             'session_token': token
         }
         response = requests.post('https://www.youtube.com/service_ajax', headers=headers, params=params,
-                                 data=data, cookies=cookies, timeout=(3, 7))
+                                 data=data, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             notelist_json = json.loads(response.text)['data']['actions'][0]['openPopupAction']['popup'][
                 'multiPageMenuRenderer']['sections'][0]['multiPageMenuNotificationSectionRenderer']['items']
@@ -1178,7 +1179,7 @@ def getyoutubenotedic(token, cookies):
         return False
 
 
-def gettwitteruser(user_screenname, cookies):
+def gettwitteruser(user_screenname, cookies, proxy):
     try:
         userdata_dic = {}
         headers = {
@@ -1190,7 +1191,7 @@ def gettwitteruser(user_screenname, cookies):
             ('variables', '{"screen_name":"%s","withHighlightedLabel":false}' % user_screenname),
         )
         response = requests.get('https://api.twitter.com/graphql/G6Lk7nZ6eEKd7LBBZw9MYw/UserByScreenName',
-                                headers=headers, params=params, cookies=cookies, timeout=(3, 7))
+                                headers=headers, params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             user_data = response.json()['data']['user']
             userdata_dic["user_id"] = user_data['id']
@@ -1223,7 +1224,7 @@ def gettwitteruser(user_screenname, cookies):
 
 
 # tweet_id为整数
-def gettwittertweetdic(user_restid, cookies):
+def gettwittertweetdic(user_restid, cookies, proxy):
     try:
         tweet_dic = {}
         params = (
@@ -1267,7 +1268,7 @@ def gettwittertweetdic(user_restid, cookies):
             'TE': 'Trailers'
         }
         response = requests.get('https://api.twitter.com/2/timeline/profile/%s.json' % user_restid, headers=headers,
-                                params=params, cookies=cookies, timeout=(3, 7))
+                                params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             tweetlist_dic = response.json()['globalObjects']['tweets']
             for tweet_id in tweetlist_dic:
@@ -1307,7 +1308,7 @@ def gettwittertweetdic(user_restid, cookies):
 
 
 # tweet_id为整数
-def gettwittersearchdic(qword, cookies):
+def gettwittersearchdic(qword, cookies, proxy):
     try:
         tweet_dic = {}
         params = (
@@ -1354,7 +1355,7 @@ def gettwittersearchdic(qword, cookies):
         }
         # 推文内容包括#话题标签的文字，filter:links匹配链接图片视频但不匹配#话题标签的链接，%%23相当于#话题标签
         url = 'https://api.twitter.com/2/search/adaptive.json?include_profile_interstitial_type=1&include_blocking=1&include_blocked_by=1&include_followed_by=1&include_want_retweets=1&include_mute_edge=1&include_can_dm=1&include_can_media_tag=1&skip_status=1&cards_platform=Web-12&include_cards=1&include_composer_source=true&include_ext_alt_text=true&include_reply_count=1&tweet_mode=extended&include_entities=true&include_user_entities=true&include_ext_media_color=true&include_ext_media_availability=true&send_error_codes=true&simple_quoted_tweets=true&q=' + qword + '&tweet_search_mode=live&count=20&query_source=typed_query&pc=1&spelling_corrections=1&ext=mediaStats%2CcameraMoment'
-        response = requests.get(url, headers=headers, params=params, cookies=cookies, timeout=(3, 7))
+        response = requests.get(url, headers=headers, params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             tweetlist_dic = response.json()['globalObjects']['tweets']
             for tweet_id in tweetlist_dic.keys():
@@ -1393,11 +1394,11 @@ def gettwittersearchdic(qword, cookies):
         return False
 
 
-def gettwitcastlive(user_id):
+def gettwitcastlive(user_id, proxy):
     try:
         live_dic = {}
         url = 'https://twitcasting.tv/streamchecker.php?u=%s&v=999' % user_id
-        response = requests.get(url, timeout=(3, 7))
+        response = requests.get(url, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             live = response.text.split("\t")
             live_id = live[0]
@@ -1414,11 +1415,11 @@ def gettwitcastlive(user_id):
         return False
 
 
-def gettwitcastchatlist(live_id):
+def gettwitcastchatlist(live_id, proxy):
     try:
         twitcastchatlist = []
         url = 'https://twitcasting.tv/userajax.php?c=listall&m=%s&n=10&f=0k=0&format=json' % live_id
-        response = requests.get(url, timeout=(3, 7))
+        response = requests.get(url, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             for i in range(len(response.json()['comments'])):
                 try:
@@ -1440,7 +1441,7 @@ def gettwitcastchatlist(live_id):
         return False
 
 
-def getfanboxuser(user_id):
+def getfanboxuser(user_id, proxy):
     try:
         userdata_dic = {}
         headers = {
@@ -1457,7 +1458,7 @@ def getfanboxuser(user_id):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0"
         }
         response = requests.get("https://fanbox.pixiv.net/api/creator.get?userId=%s" % user_id, headers=headers,
-                                timeout=(3, 7))
+                                timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             userdata_dic["user_id"] = response.json()["body"]["user"]["userId"]
             userdata_dic["user_name"] = response.json()["body"]["user"]["name"]
@@ -1477,7 +1478,7 @@ def getfanboxuser(user_id):
         return False
 
 
-def getfanboxpostdic(user_id, cookies):
+def getfanboxpostdic(user_id, cookies, proxy):
     try:
         post_dic = {}
         headers = {
@@ -1494,7 +1495,7 @@ def getfanboxpostdic(user_id, cookies):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0"
         }
         response = requests.get("https://fanbox.pixiv.net/api/post.listCreator?userId=%s&limit=10" % user_id,
-                                headers=headers, cookies=cookies, timeout=(3, 7))
+                                headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             post_list = response.json()['body']['items']
             for post in post_list:
