@@ -77,7 +77,8 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
       "かぐら": {"mea": 2},
       "メア": {"mea": 2}
     },
-    "cookies": {}, # 检测所用的cookies，可以在浏览器中打开youtube页面时按下f12，在"网络"中寻找POST类型的请求并复制其cookies即可，注意可能需要删除开头的"{请求cookies"和结尾的多余的"}"，不指定可以留空
+    "cookies": {}, # 检测所用的cookies，可以在浏览器中打开youtube页面时按下f12，在"网络"中寻找POST类型的请求并复制其cookies即可，注意可能需要删除开头的"{请求cookies"和结尾的多余的"}"，不指定可以留空或删除此项
+    "proxy": {"http": "socks5://127.0.0.1:1080","https": "socks5://127.0.0.1:1080"}, # 指定代理，如果使用非sock5代理可设置为{"http": "127.0.0.1:1080", "https": "127.0.0.1:1080"}，不使用代理可以留空或删除此项
     "push_dic": {  # 指定推送对象
       "pushlist_qq": [
         {"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}},
