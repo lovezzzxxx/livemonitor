@@ -4,7 +4,10 @@ import os
 import time
 import copy
 import re
+import random
+import struct
 import threading
+import asyncio
 import requests
 import json
 from bs4 import BeautifulSoup
@@ -313,9 +316,6 @@ class YoutubeChat(SubMonitor):
                 chatlist, self.continuation = getyoutubechatlist(self.continuation, self.proxy)
                 if isinstance(chatlist, list):
                     for chat in chatlist:
-                        writelog(self.logpath, "%s\t%s(%s)\t(%s)%s" % (
-                            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(chat["chat_timestamp"])),
-                            chat["chat_username"], chat["chat_userchannel"], chat["chat_type"], chat["chat_text"]))
                         self.push(chat)
 
                     # 目标每次请求获取5条评论，间隔时间应在0.1~3秒之间
@@ -333,6 +333,10 @@ class YoutubeChat(SubMonitor):
             time.sleep(self.interval)
 
     def push(self, chat):
+        writelog(self.logpath, "%s\t%s(%s)\t(%s)%s" % (
+            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(chat["chat_timestamp"])),
+            chat["chat_username"], chat["chat_userchannel"], chat["chat_type"], chat["chat_text"]))
+
         pushcolor_vipdic = getpushcolordic(chat["chat_userchannel"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
@@ -767,10 +771,6 @@ class TwitcastChat(SubMonitor):
                     # chatlist默认从小到大排列
                     if self.chat_id_old < chat['chat_id']:
                         self.chat_id_old = chat['chat_id']
-                        writelog(self.logpath, "%s\t%s(%s)\t%s" % (
-                            time.strftime('%Y-%m-%d %H:%M:%S',
-                                          time.localtime(round(int(chat["chat_timestamp"]) / 1000))),
-                            chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
                         self.push(chat)
 
                 # 目标每次请求获取5条评论，间隔时间应在0.1~3秒之间
@@ -788,6 +788,10 @@ class TwitcastChat(SubMonitor):
             time.sleep(self.interval)
 
     def push(self, chat):
+        writelog(self.logpath, "%s\t%s(%s)\t%s" % (
+            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(round(int(chat["chat_timestamp"]) / 1000))),
+            chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
+
         pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
@@ -907,6 +911,223 @@ class FanboxPost(SubMonitor):
             pushall(pushtext, pushcolor_dic, self.push_dic)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+
+# vip=tgt
+class BilibiliLive(Monitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s.txt' % (self.__class__.__name__, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+
+        # 重新设置submonitorconfig用于启动子线程，并添加频道id信息到子进程使用的cfg中
+        self.submonitorconfig_setname("bilibilichat_submonitor_cfg")
+        self.submonitorconfig_addconfig("bilibilichat_config", self.cfg)
+
+        try:
+            getattr(self, "simple_mode")
+        except:
+            self.simple_mode = False
+        self.livedic = {}
+
+    def run(self):
+        while not self.stop_now:
+            # 获取直播状态
+            livedic_new = getbilibililivedic(self.tgt, self.proxy)
+            if isinstance(livedic_new, dict):
+                for live_id in livedic_new:
+                    if live_id not in self.livedic or not livedic_new[live_id]["live_status"]:
+                        for live_id_old in self.livedic:
+                            if self.livedic[live_id_old]["live_status"]:
+                                self.livedic[live_id_old]["live_status"] = False
+                                self.push(live_id_old)
+
+                    if live_id not in self.livedic:
+                        self.livedic[live_id] = livedic_new[live_id]
+                        self.push(live_id)
+                    elif self.livedic[live_id]["live_status"] != livedic_new[live_id]["live_status"]:
+                        self.livedic[live_id] = livedic_new[live_id]
+                        self.push(live_id)
+                writelog(self.logpath, '[Success] "%s" getbilibililivedic %s' % (self.name, self.tgt))
+            else:
+                printlog('[Error] "%s" getbilibililivedic' % self.name)
+                writelog(self.logpath, '[Error] "%s" getbilibililivedic %s' % (self.name, self.tgt))
+            time.sleep(self.interval)
+
+    def push(self, live_id):
+        if self.livedic[live_id]["live_status"]:
+            pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+            pushcolor_worddic = getpushcolordic(self.livedic[live_id]["live_title"], self.word_dic)
+            pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
+
+            if pushcolor_dic:
+                pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://live.bilibili.com/%s" % (
+                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_title"], self.tgt)
+                pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
+                printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+            # 开始记录弹幕
+            monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
+            if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
+                                                 "bilibilichat_config", interval=3, simple_mode=self.simple_mode)
+                self.checksubmonitor()
+                printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+                writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+        # 停止记录弹幕
+        else:
+            monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
+            if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                self.submonitorconfig_delmonitor(monitor_name)
+                self.checksubmonitor()
+                printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+                writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+
+
+# vip=userid, word=text, punish=tgt+push(不包括含有'vip'的类型), 等待设定proxy
+class BilibiliChat(SubMonitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s/%s.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+        if not os.path.exists('./log/%s/%s' % (self.__class__.__name__, self.tgt_name)):
+            os.mkdir('./log/%s/%s' % (self.__class__.__name__, self.tgt_name))
+
+        try:
+            getattr(self, "simple_mode")
+        except:
+            self.simple_mode = False
+        self.connected = False
+        self.reader = False
+        self.writer = False
+        self.pushpunish = {}
+        if self.tgt in self.vip_dic:
+            for color in self.vip_dic[self.tgt]:
+                self.pushpunish[color] = self.vip_dic[self.tgt][color]
+
+    async def sendpacket(self, packet_length, header_length, protocol_version, operation, sequence_id, body):
+        bodybytes = body.encode('utf-8')
+        if packet_length == 0:
+            packet_length = len(bodybytes) + 16
+        packet = struct.pack('!IHHII', packet_length, header_length, protocol_version, operation, sequence_id)
+        if len(bodybytes) != 0:
+            packet = packet + bodybytes
+        self.writer.write(packet)
+        await self.writer.drain()
+
+    async def connect(self):
+        self.reader, self.writer = await asyncio.open_connection('livecmt-1.bilibili.com', 788)
+        uid = int(100000000000000.0 + 200000000000000.0 * random.random())
+        body = '{"roomid":%s,"uid":%s}' % (self.tgt, uid)
+        await self.sendpacket(0, 16, 1, 7, 1, body)
+        writelog(self.logpath, '[Success] "%s" connect %s' % (self.name, self.tgt))
+        self.connected = True
+        await self.receivemessageloop()
+
+    async def receivemessageloop(self):
+        while self.connected and not self.stop_now:
+            # 必须读取正确字节数
+            packet_length, = struct.unpack('!I', await self.reader.read(4))
+            header_length, = struct.unpack('!H', await self.reader.read(2))
+            protocol_version, = struct.unpack('!H', await self.reader.read(2))
+            operation, = struct.unpack('!I', await self.reader.read(4))
+            sequence_id, = struct.unpack('!I', await self.reader.read(4))
+            body_length = packet_length - 16
+            if body_length > 0:
+                body = await self.reader.read(packet_length - 16)
+            else:
+                body = ""
+
+            if operation == 5:
+                try:
+                    self.parsedanmu(body.decode('utf-8'))
+                except:
+                    continue
+            '''
+            if operation == 3:
+                listener_count = int(body)
+            '''
+
+    async def heartbeatloop(self):
+        while not self.stop_now:
+            if not self.connected:
+                await asyncio.sleep(1)
+            else:
+                await self.sendpacket(0, 16, 1, 2, 1, "")
+                await asyncio.sleep(30)
+
+    def parsedanmu(self, chat_raw):
+        try:
+            chat_json = json.loads(chat_raw)
+            chat_cmd = chat_json['cmd']
+            '''
+            if chat_cmd == 'LIVE': # 直播开始
+            if chat_cmd == 'PREPARING': # 直播停止
+            if chat_cmd == 'WELCOME':
+                chat_user = chat_json['data']['uname']
+            '''
+            if chat_cmd == 'DANMU_MSG':
+                chat_text = chat_json['info'][1]
+                chat_userid = chat_json['info'][2][0]
+                chat_username = chat_json['info'][2][1]
+                # chat_isadmin = dic['info'][2][2] == '1'
+                # chat_isvip = dic['info'][2][3] == '1'
+                chat = {"chat_text": chat_text, "chat_userid": chat_userid, "chat_username": chat_username}
+                self.push(chat)
+            elif chat_cmd == 'SEND_GIFT':
+                chat_text = "%s %s" % (chat_json['data']['giftName'], chat_json['data']['num'])
+                chat_userid = chat_json['data']['uid']
+                chat_username = chat_json['data']['uname']
+                chat = {"chat_text": chat_text, "chat_userid": chat_userid, "chat_username": chat_username}
+                self.push(chat)
+            return True
+        except:
+            return False
+
+    def run(self):
+        tasks = [self.connect(), self.heartbeatloop()]
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(asyncio.wait(tasks))
+        writelog(self.logpath, '[Stop] "%s" run %s' % (self.name, self.tgt))
+        # python3.8有bug 无法再次启动await asyncio.open_connection，只能等checkmonitor启动另一个线程
+
+    def push(self, chat):
+        writelog(self.logpath, "%s(%s)\t%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_text"]))
+
+        pushcolor_vipdic = getpushcolordic(chat["chat_userid"], self.vip_dic)
+        pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
+        pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
+
+        if pushcolor_dic:
+        # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
+            for color in self.pushpunish:
+                if color in pushcolor_dic and not color.count("vip"):
+                    if pushcolor_dic[color] <= self.pushpunish[color]:
+                        pushcolor_dic[color] -= self.pushpunish[color]
+
+        if self.simple_mode:
+            pushtext = chat["chat_text"]
+        else:
+            pushtext = "【%s %s 直播评论】\n用户：%s\n内容：%s\n网址：https://live.bilibili.com/%s" % (
+                self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_text"], self.tgt)
+        pushall(pushtext, pushcolor_dic, self.push_dic)
+        printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+        writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+        # 更新pushpunish
+        for color in pushcolor_dic:
+            if pushcolor_dic[color] > 0 and not color.count("vip"):
+                if color in self.pushpunish:
+                    self.pushpunish[color] += 1
+                else:
+                    self.pushpunish[color] = 1
 
 
 def getyoutubevideodic(user_id, proxy):
@@ -1518,6 +1739,26 @@ def getfanboxpostdic(user_id, cookies, proxy):
                 except:
                     continue
             return post_dic
+        else:
+            return False
+    except:
+        return False
+
+
+def getbilibililivedic(room_id, proxy):
+    try:
+        live_dic = {}
+        response = requests.get("http://api.live.bilibili.com/room/v1/Room/get_info?room_id=%s" % room_id, timeout=(3, 7), proxies=proxy)
+        if response.status_code == 200:
+            live = response.json()['data']
+            live_id = round(time.mktime(time.strptime(live['live_time'], '%Y-%m-%d %H:%M:%S')))
+            if live['live_status'] == 1:
+                live_status = True
+            else:
+                live_status = False
+            live_title = live['title']
+            live_dic[live_id] = {'live_status': live_status, 'live_title': live_title}
+            return live_dic
         else:
             return False
     except:
