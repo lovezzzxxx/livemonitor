@@ -167,7 +167,7 @@ class YoutubeLive(Monitor):
         try:
             getattr(self, "standby_chat")
         except:
-            self.standby_chat = "True"
+            self.standby_chat = "False"
         # 是否检测在第一次检测时已开启的待机直播间的弹幕
         try:
             getattr(self, "standby_chat_onstart")
