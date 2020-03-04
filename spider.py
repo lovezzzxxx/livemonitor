@@ -759,10 +759,13 @@ class TwitcastLive(Monitor):
 class TwitcastChat(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
-
-        self.logpath = './log/%s/%s.txt' % (self.__class__.__name__, self.name)
+        
+        self.logpath = './log/%s/%s/%s.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
         if not os.path.exists('./log/%s' % self.__class__.__name__):
             os.mkdir('./log/%s' % self.__class__.__name__)
+        if not os.path.exists('./log/%s/%s' % (self.__class__.__name__, self.tgt_name)):
+            os.mkdir('./log/%s/%s' % (self.__class__.__name__, self.tgt_name))
 
         self.chat_id_old = 0
         self.pushpunish = {}
