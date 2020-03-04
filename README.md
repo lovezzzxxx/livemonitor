@@ -89,9 +89,11 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
 }
 ```
 
-  * 每一个子监视器还可以继续启动自己的子监视器，只要指定的配置中还有"submonitor_dic"项并且添加了相应的子监视器信息的话。例如spider.json中就先启动了基于Monitor类的"Youtube"、"Twitter"、"Fanbox"三个监视器，这三个监视器又启动了各自配置中"submonitor_dic"项中指定的子监视器。
-  * 子监视器运行所需的参数由"submonitor_dic"中的项和其中"config_name"指向的配置组成，其中"class"、"target"、"target_name"、"config_name"四个项目作为必选参数需要在"submonitor_dic"中指定，其他参数既可以添加在"submonitor_dic"中也可以添加在"config_name"指向的配置中；注意当有同名参数同时存在于两个未知时，"submonitor_dic"中的参数将会生效。例如spider.json中就在部分"submonitor_dic"子监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。  
-
+  * 监视器运行所需的参数由"submonitor_dic"中的项和其中"config_name"指向的配置组成，其中"class"、"target"、"target_name"、"config_name"四个项目作为必选参数需要在"submonitor_dic"中指定，其他参数既可以添加在"submonitor_dic"中也可以添加在"config_name"指向的配置中；注意当有同名参数同时存在于两个未知时，"submonitor_dic"中的参数将会生效。例如spider.json中就在部分"submonitor_dic"监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。  
+  * 基于Monitor类的监视器可以启动自己的子监视器，只要指定的配置中还有"submonitor_dic"项并且添加了相应的子监视器信息的话。例如spider.json中就先启动了基于Monitor类的"Youtube"、"Twitter"、"Fanbox"三个监视器，这三个监视器又启动了各自配置中"submonitor_dic"项中指定的子监视器。
+  * YoutubeLive、TwitcastLive和BilibiliLive监视器可以在一定情况下启动自己的YoutubeChat、TwitcastChat和BilibiliChat子监视器，这些子监视器将会继承父监视器的config_name所指向的配置，但不会继承父监视器submonitor_dic中额外指定的参数（即submonitor_dic中指定的参数不被继承，而config_name中指定的参数将被继承）。
+  * YoutubeChat、TwitcastChat和BilibiliChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的出现大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这种色彩将会被增加1的推送惩罚；当色彩名字中含有"vip"字样时，这种色彩不会受到推送惩罚。
+  
 #### 子监视器详解
   * 
 __子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
@@ -111,7 +113,5 @@ FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，�
 BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"="True"/"False"，"simple_mode"="True"/"False"，"no_chat"="True"/"False"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 默认为"False"，no_chat为是否不记录弹幕 默认为"False"
 BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由BilibiliLive监视器创建 无需在配置文件中指定，无法直接指定proxy
 
-  * YoutubeChat、TwitcastChat和BilibiliChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的出现大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这种色彩将会被增加1的推送惩罚；当色彩名字中含有"vip"字样时，这种色彩不会受到推送惩罚。
-  
 ## 想做的事
-  * 添加bilibili动态监视器。
+  * 添加bilibili动态监视器
