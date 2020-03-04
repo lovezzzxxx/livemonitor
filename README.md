@@ -104,11 +104,11 @@ YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包�
 TwitterUser|监视twitter用户基本信息|同上|target||必要|"no_increase"="True"/"False"|no_increase为是否不推送推文和媒体数量的增加 默认为"False"
 TwitterTweet|监视twitter用户的推文|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|||
 TwitterSearch|监视推特搜索结果|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|"only_live"="True"/"False", "only_liveorvideo"="True"/"False"|only_live为是否只推送有链接指向正在进行的youtube直播的推文 默认为"False"，only_liveorvideo为是否只推送有链接指向youtube直播或视频的推文 默认为"False"，当两者同时开启时则only_liveorvideo生效
-TwitcastLive|监视twitcast直播|同上|target|标题|可留空||"no_chat"="True"/"False"|no_chat为是否不记录弹幕 默认为"False"
+TwitcastLive|监视twitcast直播|同上|target|标题|可留空|"no_chat"="True"/"False"|no_chat为是否不记录弹幕 默认为"False"
 TwitcastChat|监视twitcast直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由TwitcastLive监视器创建 无需在配置文件中指定
 FanboxUser|监视fanbox用户基本信息|同上|target||可留空|||
 FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，可留空|||
-BilibiliLive|监视bilibili直播|同上|target|标题|可留空||"offline_chat"="True"/"False"，"simple_mode"="True"/"False"，"no_chat"="True"/"False"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 默认为"False"，no_chat为是否不记录弹幕 默认为"False"
+BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"="True"/"False"，"simple_mode"="True"/"False"，"no_chat"="True"/"False"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 默认为"False"，no_chat为是否不记录弹幕 默认为"False"
 BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由BilibiliLive监视器创建 无需在配置文件中指定，无法直接指定proxy
 
   * YoutubeChat、TwitcastChat和BilibiliChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的出现大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这种色彩将会被增加1的推送惩罚；当色彩名字中含有"vip"字样时，这种色彩不会受到推送惩罚。
