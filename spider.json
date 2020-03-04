@@ -9,7 +9,7 @@
 	"youtube": {
 		"interval": 180,
 		"submonitor_dic": {
-			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "True", "standby_chat_onstart": "False", "no_chat": "False"},
+			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "False", "standby_chat_onstart": "False", "no_chat": "False"},
 			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60},
 			"YoutubeLive 神楽めあ子频道": {"class": "YoutubeLive", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
 			"YoutubeCom 神楽めあ子频道": {"class": "YoutubeCom", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
