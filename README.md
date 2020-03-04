@@ -3,7 +3,7 @@
   
   * pausebot.py和plugins为启动nonebot机器人的脚本及插件。用于让相关用户可以通过qq对pause.json中的设置进行查看和修改。  
 
-感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法。  
+感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)提供的b站弹幕接口。  
 
 
 # 原理说明
