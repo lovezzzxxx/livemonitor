@@ -3,12 +3,13 @@
 	"submonitor_dic": {
 		"Youtube": {"class": "Monitor", "target": "youtube", "target_name": "youtube", "config_name": "youtube"},
 		"Twitter": {"class": "Monitor", "target": "twitter", "target_name": "twitter", "config_name": "twitter"},
-		"Fanbox": {"class": "Monitor", "target": "fanbox", "target_name": "fanbox", "config_name": "fanbox"}
+		"Fanbox": {"class": "Monitor", "target": "fanbox", "target_name": "fanbox", "config_name": "fanbox"},
+		"Bilibili": {"class": "Monitor", "target": "bilibili", "target_name": "bilibili", "config_name": "bilibili"}
 	},
 	"youtube": {
 		"interval": 180,
 		"submonitor_dic": {
-			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "True", "standby_chat_onstart": "True"},
+			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "True", "standby_chat_onstart": "False", "no_chat": "False"},
 			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60},
 			"YoutubeLive 神楽めあ子频道": {"class": "YoutubeLive", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
 			"YoutubeCom 神楽めあ子频道": {"class": "YoutubeCom", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
@@ -52,9 +53,9 @@
 	"twitter": {
 		"interval": 180,
 		"submonitor_dic": {
-			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "True"},
+			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "False"},
 			"TwitterTweet 神楽めあ": {"class": "TwitterTweet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
-			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
+			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_chat": "False"},
 			"TwitterTweet 湊あくあ": {"class": "TwitterTweet", "target": "minatoaqua", "target_name": "湊あくあ", "config_name": "twitter_config"},
 			"TwitterTweet 織田信姫": {"class": "TwitterTweet", "target": "oda_nobuhime", "target_name": "織田信姫", "config_name": "twitter_config"},
 			"TwitterTweet 犬山たまき": {"class": "TwitterTweet", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
@@ -70,7 +71,7 @@
 			"TwitcastLive 卯月コウ": {"class": "TwitcastLive", "target": "udukikohh", "target_name": "卯月コウ", "config_name": "twitter_config"},
 			"TwitterTweet 舞元啓介": {"class": "TwitterTweet", "target": "maimoto_k", "target_name": "舞元啓介", "config_name": "twitter_config"},
 			"TwitterSearch めあArt": {"class": "TwitterSearch", "target": "めあArt filter:links", "target_name": "めあArt", "config_name": "twitter_config"},
-			"TwitterSearch 神楽めあ": {"class": "TwitterSearch", "target": "神楽めあ filter:links", "target_name": "神楽めあ", "config_name": "twitter_config", "only_live": "True", "only_liveorvideo": "False"}
+			"TwitterSearch 神楽めあ": {"class": "TwitterSearch", "target": "神楽めあ filter:links", "target_name": "神楽めあ", "config_name": "twitter_config", "only_live": "False", "only_liveorvideo": "False"}
 		},
 		"twitter_config": {
 			"interval": 180,
@@ -115,6 +116,26 @@
 			"push_dic": {
 				"pushlist_qq": [
 					{"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}}
+				]
+			}
+		}
+	},
+	"bilibili": {
+		"interval": 180,
+		"submonitor_dic": {
+			"BilibiliLive 神楽めあ": {"class": "BilibiliLive", "target": "12235923", "target_name": "神楽めあ", "config_name": "bilibili_config", "interval": 60, "offline_chat": "False", "simple_mode": "False", "no_chat": "False"}
+		},
+		"bilibili_config": {
+			"interval": 180,
+			"vip_dic": {
+				"12235923": {"mea": 10}
+			},
+			"word_dic": {},
+			"cookies": {},
+			"proxy": {},
+			"push_dic": {
+				"pushlist_qq": [
+					{"type": "user", "id": "1067426979", "port": 5700, "color_dic": {"mea": 1}}
 				]
 			}
 		}
