@@ -97,7 +97,7 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
 __子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
 :---|:---|:---|:---|:---|:---|:---|:---
 Monitor|作为基本监视器管理子监视器组|interval|||||
-YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_dic|target|标题、简介|可留空|"standby_chat"="True"/"False"，"standby_chat_onstart"="True"/"False"，"no_chat"="True"/"False"|standby_chat为是否检测待机直播间的弹幕 默认为"True"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False"，no_chat为是否不记录弹幕 默认为"False"
+YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_dic|target|标题、简介|可留空|"standby_chat"="True"/"False"，"standby_chat_onstart"="True"/"False"，"no_chat"="True"/"False"|standby_chat为是否检测待机直播间的弹幕 默认为"False"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False"，no_chat为是否不记录弹幕 默认为"False"
 YoutubeChat|监视youtube直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由YoutubeLive监视器创建 无需在配置文件中指定
 YoutubeCom|监视youtube社区帖子|同上|target|帖子文字|付费帖子，可留空|||
 YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包括superchat）|用户通知，必要|||
