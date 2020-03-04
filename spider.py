@@ -147,7 +147,7 @@ class Monitor(SubMonitor):
             self.submonitor_threads[monitor_name].stop()
 
 
-# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False"
+# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", "no_chat"="True"/"False"
 class YoutubeLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -173,6 +173,10 @@ class YoutubeLive(Monitor):
             getattr(self, "standby_chat_onstart")
         except:
             self.standby_chat_onstart = "False"
+        try:
+            getattr(self, "no_chat")
+        except:
+            self.no_chat = "False"
 
     def run(self):
         while not self.stop_now:
@@ -255,24 +259,26 @@ class YoutubeLive(Monitor):
                     printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                     writelog(self.logpath,
                              '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-        # 开始记录弹幕
-        if self.videodic[video_id]["video_status"] == "等待" and self.standby_chat == "True" or self.videodic[video_id][
-            "video_status"] == "进行":
-            monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
-            if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
-                self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
-                                                 "youtubechat_config", interval=3, tgt_channel=self.tgt)
-                self.checksubmonitor()
-                printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
-                writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
-        # 停止记录弹幕
-        else:
-            monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
-            if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
-                self.submonitorconfig_delmonitor(monitor_name)
-                self.checksubmonitor()
-                printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
-                writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+
+        if self.no_chat != "True":
+            # 开始记录弹幕
+            if self.videodic[video_id]["video_status"] == "等待" and self.standby_chat == "True" or \
+                    self.videodic[video_id]["video_status"] == "进行":
+                monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
+                if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                    self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
+                                                     "youtubechat_config", interval=3, tgt_channel=self.tgt)
+                    self.checksubmonitor()
+                    printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+                    writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+            # 停止记录弹幕
+            else:
+                monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
+                if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                    self.submonitorconfig_delmonitor(monitor_name)
+                    self.checksubmonitor()
+                    printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+                    writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
 # vip=userchannel, word=text, punish=tgt+push(不包括含有'vip'的类型)
@@ -592,7 +598,7 @@ class TwitterTweet(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt+mention, word=text, only_live="True"/"False", only_liveorvideo="True"/"False"
+# vip=tgt+mention, word=text, only_live="True"/"False", only_liveorvideo="True"/"False", "no_chat"="True"/"False"
 class TwitterSearch(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -686,6 +692,10 @@ class TwitcastLive(Monitor):
         self.submonitorconfig_setname("twitcastchat_submonitor_cfg")
         self.submonitorconfig_addconfig("twitcastchat_config", self.cfg)
 
+        try:
+            getattr(self, "no_chat")
+        except:
+            self.no_chat = "False"
         self.livedic = {}
 
     def run(self):
@@ -725,22 +735,24 @@ class TwitcastLive(Monitor):
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
+        if self.no_chat != "True":
             # 开始记录弹幕
-            monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
-            if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
-                self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
-                                                 "twitcastchat_config", interval=3, tgt_channel=self.tgt)
-                self.checksubmonitor()
-                printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
-                writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
-        # 停止记录弹幕
-        else:
-            monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
-            if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
-                self.submonitorconfig_delmonitor(monitor_name)
-                self.checksubmonitor()
-                printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
-                writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+            if self.livedic[live_id]["live_status"]:
+                monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
+                if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                    self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
+                                                     "twitcastchat_config", interval=3, tgt_channel=self.tgt)
+                    self.checksubmonitor()
+                    printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+                    writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+            # 停止记录弹幕
+            else:
+                monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
+                if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                    self.submonitorconfig_delmonitor(monitor_name)
+                    self.checksubmonitor()
+                    printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+                    writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
 # vip=chat_screenname, word=text, punish=tgt+push(不包括含有'vip'的类型)
@@ -913,7 +925,7 @@ class FanboxPost(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt
+# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False", "no_chat"="True"/"False"
 class BilibiliLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -927,12 +939,29 @@ class BilibiliLive(Monitor):
         self.submonitorconfig_addconfig("bilibilichat_config", self.cfg)
 
         try:
+            getattr(self, "offline_chat")
+        except:
+            self.offline_chat = "False"
+        try:
             getattr(self, "simple_mode")
         except:
-            self.simple_mode = False
+            self.simple_mode = "False"
+        try:
+            getattr(self, "no_chat")
+        except:
+            self.no_chat = "False"
         self.livedic = {}
 
     def run(self):
+        if self.offline_chat == "True" and self.no_chat != "True":
+            monitor_name = "%s - BilibiliChat %s" % (self.name, 'offline_chat')
+            if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
+                                                 "bilibilichat_config", interval=3, simple_mode=self.simple_mode)
+                self.checksubmonitor()
+            printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+            writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
+
         while not self.stop_now:
             # 获取直播状态
             livedic_new = getbilibililivedic(self.tgt, self.proxy)
@@ -969,25 +998,27 @@ class BilibiliLive(Monitor):
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
+        if self.offline_chat != "True" and self.no_chat != "True":
             # 开始记录弹幕
-            monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
-            if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
-                self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
-                                                 "bilibilichat_config", interval=3, simple_mode=self.simple_mode)
-                self.checksubmonitor()
+            if self.livedic[live_id]["live_status"]:
+                monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
+                if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                    self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
+                                                     "bilibilichat_config", interval=3, simple_mode=self.simple_mode)
+                    self.checksubmonitor()
                 printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                 writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
-        # 停止记录弹幕
-        else:
-            monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
-            if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
-                self.submonitorconfig_delmonitor(monitor_name)
-                self.checksubmonitor()
-                printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
-                writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+            # 停止记录弹幕
+            else:
+                monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
+                if monitor_name in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
+                    self.submonitorconfig_delmonitor(monitor_name)
+                    self.checksubmonitor()
+                    printlog('[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
+                    writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
-# vip=userid, word=text, punish=tgt+push(不包括含有'vip'的类型), 等待设定proxy
+# vip=userid, word=text, punish=tgt+push(不包括含有'vip'的类型), 获取弹幕的websocket连接无法直接指定proxy
 class BilibiliChat(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -1074,7 +1105,7 @@ class BilibiliChat(SubMonitor):
             '''
             if chat_cmd == 'DANMU_MSG':
                 chat_text = chat_json['info'][1]
-                chat_userid = chat_json['info'][2][0]
+                chat_userid = str(chat_json['info'][2][0])
                 chat_username = chat_json['info'][2][1]
                 # chat_isadmin = dic['info'][2][2] == '1'
                 # chat_isvip = dic['info'][2][3] == '1'
@@ -1082,7 +1113,7 @@ class BilibiliChat(SubMonitor):
                 self.push(chat)
             elif chat_cmd == 'SEND_GIFT':
                 chat_text = "%s %s" % (chat_json['data']['giftName'], chat_json['data']['num'])
-                chat_userid = chat_json['data']['uid']
+                chat_userid = str(chat_json['data']['uid'])
                 chat_username = chat_json['data']['uname']
                 chat = {"chat_text": chat_text, "chat_userid": chat_userid, "chat_username": chat_username}
                 self.push(chat)
@@ -1106,20 +1137,21 @@ class BilibiliChat(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-        # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
+            # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
             for color in self.pushpunish:
                 if color in pushcolor_dic and not color.count("vip"):
                     if pushcolor_dic[color] <= self.pushpunish[color]:
                         pushcolor_dic[color] -= self.pushpunish[color]
 
-        if self.simple_mode:
-            pushtext = chat["chat_text"]
-        else:
-            pushtext = "【%s %s 直播评论】\n用户：%s\n内容：%s\n网址：https://live.bilibili.com/%s" % (
-                self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_text"], self.tgt)
-        pushall(pushtext, pushcolor_dic, self.push_dic)
-        printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-        writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            if self.simple_mode == "True":
+                pushtext = chat["chat_text"]
+            else:
+                pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n网址：https://live.bilibili.com/%s" % (
+                    self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
+                    chat["chat_text"], self.tgt)
+            pushall(pushtext, pushcolor_dic, self.push_dic)
+            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
         # 更新pushpunish
         for color in pushcolor_dic:
@@ -1748,10 +1780,14 @@ def getfanboxpostdic(user_id, cookies, proxy):
 def getbilibililivedic(room_id, proxy):
     try:
         live_dic = {}
-        response = requests.get("http://api.live.bilibili.com/room/v1/Room/get_info?room_id=%s" % room_id, timeout=(3, 7), proxies=proxy)
+        response = requests.get("http://api.live.bilibili.com/room/v1/Room/get_info?room_id=%s" % room_id,
+                                timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             live = response.json()['data']
-            live_id = round(time.mktime(time.strptime(live['live_time'], '%Y-%m-%d %H:%M:%S')))
+            try:
+                live_id = round(time.mktime(time.strptime(live['live_time'], '%Y-%m-%d %H:%M:%S')))
+            except:
+                live_id = ''
             if live['live_status'] == 1:
                 live_status = True
             else:
