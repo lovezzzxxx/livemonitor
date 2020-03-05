@@ -1154,6 +1154,11 @@ class BilibiliChat(SubMonitor):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(asyncio.wait(tasks))
+        if self.simple_mode != "False":
+            if self.pushtext_old:
+                pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_dic)
+                printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
         writelog(self.logpath, '[Stop] "%s" run %s' % (self.name, self.tgt))
         # python3.8有bug 无法再次启动await asyncio.open_connection，只能等checkmonitor启动另一个线程
 
