@@ -1040,6 +1040,7 @@ class BilibiliChat(SubMonitor):
         if self.simple_mode != "False":
             self.pushcount = 0
             self.pushtext_old = ""
+            # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
             self.pushcolor_dic_old = {}
             try:
                 self.simple_mode = int(self.simple_mode)
@@ -1198,6 +1199,7 @@ class BilibiliChat(SubMonitor):
                         printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
                         writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
                         self.pushtext_old = ""
+                        # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
                         self.pushcolor_dic_old = {}
                     else:
                         self.pushtext_old += "\n"
