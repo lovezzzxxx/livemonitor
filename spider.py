@@ -759,7 +759,7 @@ class TwitcastLive(Monitor):
 class TwitcastChat(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
-        
+
         self.logpath = './log/%s/%s/%s.txt' % (
             self.__class__.__name__, self.tgt_name, self.name)
         if not os.path.exists('./log/%s' % self.__class__.__name__):
@@ -1038,6 +1038,7 @@ class BilibiliChat(SubMonitor):
         except:
             self.simple_mode = False
         self.connected = False
+        self.time_out = False
         self.reader = False
         self.writer = False
         self.pushpunish = {}
@@ -1057,15 +1058,15 @@ class BilibiliChat(SubMonitor):
 
     async def connect(self):
         self.reader, self.writer = await asyncio.open_connection('livecmt-1.bilibili.com', 788)
-        uid = int(100000000000000.0 + 200000000000000.0 * random.random())
-        body = '{"roomid":%s,"uid":%s}' % (self.tgt, uid)
+        body = '{"roomid":%s,"uid":%s}' % (self.tgt, int(100000000000000.0 + 200000000000000.0 * random.random()))
         await self.sendpacket(0, 16, 1, 7, 1, body)
         writelog(self.logpath, '[Success] "%s" connect %s' % (self.name, self.tgt))
         self.connected = True
-        await self.receivemessageloop()
 
     async def receivemessageloop(self):
-        while self.connected and not self.stop_now:
+        await self.connect()
+
+        while not self.stop_now:
             # 必须读取正确字节数
             packet_length, = struct.unpack('!I', await self.reader.read(4))
             header_length, = struct.unpack('!H', await self.reader.read(2))
@@ -1074,15 +1075,18 @@ class BilibiliChat(SubMonitor):
             sequence_id, = struct.unpack('!I', await self.reader.read(4))
             body_length = packet_length - 16
             if body_length > 0:
-                body = await self.reader.read(packet_length - 16)
+                body = await self.reader.read(body_length)
             else:
                 body = ""
 
+            # 心跳包回应
+            if operation == 3:
+                self.time_out = time.time()
+
+            # 弹幕和通知
             if operation == 5:
-                try:
-                    self.parsedanmu(body.decode('utf-8'))
-                except:
-                    continue
+                self.parsedanmu(body)
+
             '''
             if operation == 3:
                 listener_count = int(body)
@@ -1094,11 +1098,13 @@ class BilibiliChat(SubMonitor):
                 await asyncio.sleep(1)
             else:
                 await self.sendpacket(0, 16, 1, 2, 1, "")
-                await asyncio.sleep(30)
+                await asyncio.sleep(25)
+                if self.time_out < time.time() - 80:
+                    self.stop_now = True
 
-    def parsedanmu(self, chat_raw):
+    def parsedanmu(self, chat_body):
         try:
-            chat_json = json.loads(chat_raw)
+            chat_json = json.loads(chat_body.decode('utf-8'))
             chat_cmd = chat_json['cmd']
             '''
             if chat_cmd == 'LIVE': # 直播开始
@@ -1107,25 +1113,34 @@ class BilibiliChat(SubMonitor):
                 chat_user = chat_json['data']['uname']
             '''
             if chat_cmd == 'DANMU_MSG':
+                chat_type = 'message'
                 chat_text = chat_json['info'][1]
                 chat_userid = str(chat_json['info'][2][0])
                 chat_username = chat_json['info'][2][1]
                 # chat_isadmin = dic['info'][2][2] == '1'
                 # chat_isvip = dic['info'][2][3] == '1'
-                chat = {"chat_text": chat_text, "chat_userid": chat_userid, "chat_username": chat_username}
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid, 'chat_username': chat_username}
                 self.push(chat)
             elif chat_cmd == 'SEND_GIFT':
-                chat_text = "%s %s" % (chat_json['data']['giftName'], chat_json['data']['num'])
+                chat_type = 'gift %s %s' % (chat_json['data']['giftName'], chat_json['data']['num'])
+                chat_text = ''
                 chat_userid = str(chat_json['data']['uid'])
                 chat_username = chat_json['data']['uname']
-                chat = {"chat_text": chat_text, "chat_userid": chat_userid, "chat_username": chat_username}
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid, 'chat_username': chat_username}
+                self.push(chat)
+            elif chat_cmd == 'SUPER_CHAT_MESSAGE':
+                chat_type = 'superchat CN¥%s' % chat_json['data']['price']
+                chat_text = chat_json['data']['message']
+                chat_userid = str(chat_json['data']['uid'])
+                chat_username = chat_json['data']['user_info']['uname']
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid, 'chat_username': chat_username}
                 self.push(chat)
             return True
         except:
             return False
 
     def run(self):
-        tasks = [self.connect(), self.heartbeatloop()]
+        tasks = [self.receivemessageloop(), self.heartbeatloop()]
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(asyncio.wait(tasks))
@@ -1133,7 +1148,7 @@ class BilibiliChat(SubMonitor):
         # python3.8有bug 无法再次启动await asyncio.open_connection，只能等checkmonitor启动另一个线程
 
     def push(self, chat):
-        writelog(self.logpath, "%s(%s)\t%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_text"]))
+        writelog(self.logpath, "%s(%s)\t(%s)%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_type"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_userid"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
@@ -1149,9 +1164,9 @@ class BilibiliChat(SubMonitor):
             if self.simple_mode == "True":
                 pushtext = chat["chat_text"]
             else:
-                pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n网址：https://live.bilibili.com/%s" % (
+                pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
                     self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
-                    chat["chat_text"], self.tgt)
+                    chat["chat_text"], chat["chat_type"], self.tgt)
             pushall(pushtext, pushcolor_dic, self.push_dic)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1954,5 +1969,5 @@ if __name__ == '__main__':
     monitor.Daemon = True
     monitor.start()
     while True:
-        time.sleep(60)
+        time.sleep(30)
         monitor.checksubmonitor()
