@@ -928,7 +928,7 @@ class FanboxPost(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False", "no_chat"="True"/"False"
+# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False"
 class BilibiliLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -1036,7 +1036,17 @@ class BilibiliChat(SubMonitor):
         try:
             getattr(self, "simple_mode")
         except:
-            self.simple_mode = False
+            self.simple_mode = "False"
+        if self.simple_mode != "False":
+            self.pushcount = 0
+            self.pushtext_old = ""
+            self.pushcolor_dic_old = {}
+            try:
+                self.simple_mode = int(self.simple_mode)
+                if self.simple_mode == 0:
+                    self.simple_mode = 1
+            except:
+                self.simple_mode = 1
         self.connected = False
         self.time_out = False
         self.reader = False
@@ -1161,15 +1171,31 @@ class BilibiliChat(SubMonitor):
                     if pushcolor_dic[color] <= self.pushpunish[color]:
                         pushcolor_dic[color] -= self.pushpunish[color]
 
-            if self.simple_mode == "True":
-                pushtext = chat["chat_text"]
-            else:
-                pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
-                    self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
-                    chat["chat_text"], chat["chat_type"], self.tgt)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
-            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                if self.simple_mode == "False":
+                    pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
+                        self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
+                        chat["chat_text"], chat["chat_type"], self.tgt)
+                    pushall(pushtext, pushcolor_dic, self.push_dic)
+                    printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                    writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                else:
+                    self.pushcount += 1
+                    self.pushtext_old += chat["chat_text"]
+                    for color in pushcolor_dic:
+                        if color in self.pushcolor_dic_old:
+                            if self.pushcolor_dic_old[color] < pushcolor_dic[color]:
+                                self.pushcolor_dic_old[color] = pushcolor_dic[color]
+                        else:
+                            self.pushcolor_dic_old[color] = pushcolor_dic[color]
+
+                    if self.pushcount % self.simple_mode == 0:
+                        pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_dic)
+                        printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                        writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                        self.pushtext_old = ""
+                        self.pushcolor_dic_old = {}
+                    else:
+                        self.pushtext_old += "\n"
 
         # 更新pushpunish
         for color in pushcolor_dic:
