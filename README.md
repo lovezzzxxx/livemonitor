@@ -12,13 +12,13 @@ release中发布的exe版本可以在windows中直接运行，无需安装python
 2020/3/8 需要修改旧版配置文件中的push_dic部分为示例中push_list的形式
 
 # 环境依赖
-### 检测脚本本体
+## 检测脚本本体
 ##### 安装方法
 在命令行中运行`pip3 install requests; pip3 install bs4; pip3 install lxml`安装脚本依赖的python库，将spider.py和spider.json文件下载到相同的目录（注意至少还需要在配置文件中设置cookies和要推送的qq账户才能正常运行）。
 ##### 启动方法
   在命令行中运行`python3 spider.py`，按照提示选择配置文件。
   
-### qq推送部分(可选)
+## qq推送部分(可选)
 ##### 安装方法
   * coolq机器人([windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558))和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)  
 
@@ -28,7 +28,7 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
 ##### 启动方法
 在安装设置完成后运行并登录即可。
 
-### qq响应部分(可选)
+## qq响应部分(可选)
 ##### 安装方法
   * [nonebot机器人](https://nonebot.cqp.moe/)、启动脚本(pausebot.py)和相应插件(plugins文件夹)  
 
