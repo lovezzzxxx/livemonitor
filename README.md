@@ -1,48 +1,49 @@
 # 功能介绍
-  * spider.py、spider.json和pause.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测和推送。  
+  * spider.py、spider.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测，支持推送到qq用户、qq群、喵提醒。  
   
-  * pausebot.py和plugins为启动nonebot机器人的脚本及插件。用于让相关用户可以通过qq对pause.json中的设置进行查看和修改。 
+  * pausebot.py和plugins为启动nonebot机器人的脚本及插件。用于让用户可以通过qq对推送力度进行查看和修改。 
 
 感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)提供的b站弹幕接口。  
 
-# 关于release
-release中发布的exe版本可以在windows中直接运行，无需安装python和依赖库，只需要运行coolq机器人、修改spider.json然后启动脚本就可以使用bot的大部分功能。exe版本和原始版本主要的区别是不支持nonebot，无法回应qq发送的指令，也无需安装pausebot.py和plugins。
+### 关于release
+release中发布的exe版本可以在windows中直接运行，无需安装python和依赖库。exe版本和原始版本主要的区别是不支持nonebot，无法回应qq发送的指令，也无需安装pausebot.py和plugins。
 
-# 原理说明
-主要由三部分构成，coolq机器人和coolq-http-api插件、nonebot机器人和相应插件、检测脚本。  
-coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收发信息，其中coolq-http-api插件一方面通过接受检测脚本发送到的指定端口的http请求（默认为5700端口）向qq用户推送消息，另一方面通过websocket和nonebot机器人建立连接、接受并处理qq用户发来的消息，让用户可以通过qq查看和修改推送设置。  
+### 不兼容提示
+2020/3/8 需要修改旧版配置文件中的push_dic部分为示例中push_list的形式
 
+# 环境依赖
+### 检测脚本本体
+##### 安装方法
+在命令行中运行`pip3 install requests; pip3 install bs4; pip3 install lxml`安装脚本依赖的python库，将spider.py、spider.json和pause.json文件下载到相同的目录（注意至少还需要在配置文件中设置cookies和要推送的qq账户才能正常运行）。
+##### 启动方法
+  在命令行中运行`python3 spider.py`，按照提示选择配置文件。
+  
+### qq推送部分(可选)
+##### 安装方法
+  * coolq机器人([windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558))和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)  
 
-# 环境依赖和安装方法
-  * coolq机器人（[windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558)）和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)  
-  coolq机器人在windows中直接下载运行即可，在linux中需要在docker中安装`docker pull coolq/wine-coolq`、建立设置文件夹`mkdir 'coolq机器人设置文件存放路径'`、运行`docker run --name=coolq --rm -p 5700:5700 -p 9000:9000 -v 刚刚建立的设置文件存放路径:/home/user/coolq -e VNC_PASSWD=网页登陆密码 -e COOLQ_ACCOUNT=你的qq账号 -e CQHTTP_SERVE_DATA_FILES=yes coolq/wine-coolq`、在浏览器中打开`http://你的服务器IP:9000`并输入刚刚设置的网页登陆密码登录。  
-  在运行一次后coolq机器人的设置文件夹中将会产生几个文件夹，需要将io.github.richardchien.coolqhttpapi.cpk文件(coolq-http-api插件本体)放到app文件夹下，重启coolq机器人后在设置中启用coolq-http-api插件，再次重启coolq机器人后设置文件夹的app\io.github.richardchien.coolqhttpapi\config或data\app\io.github.richardchien.coolqhttpapi\config中将会产生一个json文件，将其中的内容替换为此项目中相应设置示例的内容即可。
+coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收发信息，coolq-http-api插件在接收到检测脚本发送到的指定端口的http请求后向qq用户推送消息（默认为5700端口）。  
+coolq机器人在windows中直接下载运行即可；在linux中需要在docker中安装`docker pull coolq/wine-coolq`、建立设置文件夹`mkdir 'coolq机器人设置文件存放路径'`、运行`docker run --name=coolq --rm -p 5700:5700 -p 9000:9000 -v 刚刚建立的设置文件存放路径:/home/user/coolq -e VNC_PASSWD=网页登陆密码 -e COOLQ_ACCOUNT=你的qq账号 -e CQHTTP_SERVE_DATA_FILES=yes coolq/wine-coolq`、在浏览器中打开`http://你的服务器IP:9000`并输入刚刚设置的网页登陆密码登录。  
+在运行一次后coolq机器人的设置文件夹中将会产生几个文件夹，需要将io.github.richardchien.coolqhttpapi.cpk文件(coolq-http-api插件本体)放到app文件夹下，重启coolq机器人后在设置中启用coolq-http-api插件。
+##### 启动方法
+在安装设置完成后运行并登录即可。
 
+### qq响应部分(可选)
+##### 安装方法
   * [nonebot机器人](https://nonebot.cqp.moe/)、启动脚本(pausebot.py)和相应插件(plugins文件夹)  
-  在命令行中运行`pip3 install nonebot`即可安装nonebot机器人本体，再将pausebot.py和plugins文件夹下载到本地任意目录即可。
 
-  * 检测脚本和相应设置文件  
-  在命令行中运行`pip3 install requests; pip3 install bs4; pip3 install lxml`安装脚本依赖的python库，将spider.py、spider.json和pause.json文件下载到和pausebot.py和plugins文件夹的相同的目录即可（注意至少还需要在spider.json中设置cookies和要推送的qq账户才能正常运行）。  
+nonebot机器人通过和coolq机器人的coolq-http-api插件建立websocket连接来响应用户的指令，让用户可以通过向bot账号发送`/check`或`/pause`等指令来修改推送力度。  
+在命令行中运行`pip3 install nonebot`即可安装nonebot机器人本体，再将pausebot.py和plugins文件夹下载到本地任意目录。  
+启用coolq-http-api插件后coolq机器人文件夹的app\io.github.richardchien.coolqhttpapi\config或data\app\io.github.richardchien.coolqhttpapi\config中将会产生一个json文件，将其中的内容替换为此项目中相应设置示例的内容即可。如果不使用nontbot机器人功能则不用修改。
+##### 启动方法
+  在命令行中运行`python3 pausebot.py`，按照提示设置ip地址和端口。此时如果配置正确的话命令行应该会显示形如`[2019-01-26 16:23:17,159] 172.29.84.18:50639 GET /ws/api/ 1.1 101 - 986``[2019-01-26 16:23:17,201] 172.29.84.18:53839 GET /ws/event/ 1.1 101 - 551`的两条提示。
+##### 使用方法
+在qq中向coolq机器人登录的qq账号发送消息（私聊消息需要为好友，在同一个群聊中则没有限制），发送`\check`可以检测推送阻力，发送`\pause 数字`可以设置推送阻力，另外`\echo 文字`或`复读文字`可以让bot复读，`\test`或`在吗`可以让bot回复。
 
+### 喵提醒(可选)
+在喵提醒微信公众号中选择'提醒'-'添加提醒'，完成设置后将会收到一个喵提醒号。更加详细的说明可以在其微信公众号中查看。
 
-# 启动和使用方法
-## coolq机器人
-#### 启动coolq机器人
-在安装设置完成后运行并登录即可。  
-
-
-## nonebot机器人
-#### 启动nonebot机器人
-在命令行中运行`python3 pausebot.py`，按照提示设置ip地址和端口。此时如果配置正确的话命令行应该会显示形如`[2019-01-26 16:23:17,159] 172.29.84.18:50639 GET /ws/api/ 1.1 101 - 986``[2019-01-26 16:23:17,201] 172.29.84.18:53839 GET /ws/event/ 1.1 101 - 551`的两条提示。  
-
-#### 通过nonebot机器人查看和修改设置
-在qq中向coolq机器人登录的qq账号发送消息（私聊消息需要为好友，在同一个群聊中则没有限制），发送`\check`可以检测推送阻力，发送`\pause 数字`可以设置推送阻力，另外`\echo 文字`或`复读文字`可以让bot复读，`\test`或`在吗`可以让bot回复。  
-
-
-## 检测脚本
-#### 启动检测脚本
-在命令行中运行`python3 spider.py`，按照提示选择配置文件。  
-
+# 脚本详解
 ### 脚本运行原理
   * 脚本将会按照设置文件中的设置来启动许多子监视器线程以完成不同的监视任务，你可以为每一个监视器线程指定不同的运行参数，也可以让一些监视器线程共用一些运行参数，同时为每个监视器添加各自特有的运行参数。脚本内置了一些预设的子监视器，你也可以通过继承脚本中的Monitor类来编写自己的子监视器。脚本目前只有推送到qq的功能，不过你也可以在pushall方法中添加自己的内容来增加新的推送功能。
   * 每个子监视器线程都会定时检测指定的内容，如youtube视频列表、twitter用户信息、twitcast直播状态等，并将更新的信息与指定的关键词进行匹配，对符合条件的信息向用户进行推送。
@@ -81,13 +82,11 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
     },
     "cookies": {}, # 检测所用的cookies，可以在浏览器中打开youtube页面时按下f12，在"网络"中寻找POST类型的请求并复制其cookies即可，注意可能需要删除开头的"{请求cookies"和结尾的多余的"}"，不指定可以留空或删除此项
     "proxy": {"http": "socks5://127.0.0.1:1080","https": "socks5://127.0.0.1:1080"}, # 指定代理，如果使用非sock5代理可设置为{"http": "127.0.0.1:1080", "https": "127.0.0.1:1080"}，不使用代理可以留空或删除此项
-    "push_dic": {  # 指定推送对象
-      "pushlist_qq": [
-        {"type": "user", "id": "1234567", "port": 5700, "color_dic": {"mea": 1}},
-        {"type": "group", "id": "7654321", "port": 5700, "color_dic": {"mea": 1}}
-			]
-		}
-	}
+    "push_list": [ # 指定推送对象
+        {"type": "qq_user", "id": "qq号", "port": 5700, "color_dic": {"mea": 1}},
+        {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
+        {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}}
+    ]
 }
 ```
 
@@ -96,7 +95,7 @@ coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收�
   * YoutubeLive、TwitcastLive和BilibiliLive监视器可以在一定情况下启动自己的YoutubeChat、TwitcastChat和BilibiliChat子监视器，这些子监视器将会继承父监视器的config_name所指向的配置，但不会继承父监视器submonitor_dic中额外指定的参数（即submonitor_dic中指定的参数不被继承，而config_name中指定的参数将被继承），如果想让Live监视器和Chat监视器有不同的设置则可以分别在submonitor_dic和config_name所指向的配置中设定两者的参数。
   * YoutubeChat、TwitcastChat和BilibiliChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的出现大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这种色彩将会被增加1的推送惩罚；当色彩名字中含有"vip"字样时，这种色彩不会受到推送惩罚。
   
-#### 子监视器详解
+### 子监视器详解
 __子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
 :---|:---|:---|:---|:---|:---|:---|:---
 Monitor|作为基本监视器管理子监视器组|interval|||||
@@ -114,7 +113,6 @@ FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，�
 BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"="True"/"False"，"simple_mode"="True"/"False"/"合并弹幕数量"，"no_chat"="True"/"False"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 如果为数字则会将相应数量的弹幕整合推送 默认为"False"，no_chat为是否不记录弹幕 默认为"False"
 BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由BilibiliLive监视器创建 无需在配置文件中指定，无法直接指定proxy
 
-## 想做的事
+# 想做的事
   * 添加bilibili动态监视器
   * 添加steam、LOL、apex等监视器
-  
