@@ -27,7 +27,7 @@ class SubMonitor(threading.Thread):
         self.word_dic = {}
         self.cookies = {}
         self.proxy = {}
-        self.push_dic = {}
+        self.push_list = []
         # 不要直接修改通过cfg引用传递定义的列表和变量，请deepcopy后再修改
         for var in cfg:
             setattr(self, var, cfg[var])
@@ -255,7 +255,7 @@ class YoutubeLive(Monitor):
                         self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_title"],
                         video_id)
                 if pushtext:
-                    pushall(pushtext, pushcolor_dic, self.push_dic)
+                    pushall(pushtext, pushcolor_dic, self.push_list)
                     printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                     writelog(self.logpath,
                              '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -357,7 +357,7 @@ class YoutubeChat(SubMonitor):
             pushtext = "【%s %s 直播评论】\n用户：%s\n内容：%s\n类型：%s\n网址：https://www.youtube.com/watch?v=%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_text"], chat["chat_type"],
                 self.tgt)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -410,7 +410,7 @@ class YoutubeCom(SubMonitor):
             pushtext = "【%s %s 社区帖子】\n内容：%s\n时间：%s\n网址：https://www.youtube.com/post/%s" % (
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_text"][0:3000],
                 postdic[post_id]["post_time"], post_id)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -469,7 +469,7 @@ class YoutubeNote(SubMonitor):
             pushtext = "【%s %s 订阅通知】\n内容：%s\n时间：%s\n网址：https://www.youtube.com/watch?v=%s" % (
                 self.__class__.__name__, self.tgt_name, notedic[note_id]["note_text"],
                 notedic[note_id]["note_time"], notedic[note_id]["note_videoid"])
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -528,7 +528,7 @@ class TwitterUser(SubMonitor):
         if pushcolor_dic:
             pushtext = "【%s %s 数据改变】\n%s\n网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -593,7 +593,7 @@ class TwitterTweet(SubMonitor):
                 tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), self.tgt,
                 tweet_id)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -674,7 +674,7 @@ class TwitterSearch(SubMonitor):
                     tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"],
                     tweetdic[tweet_id]["tweet_urls"],
                     time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
-                pushall(pushtext, pushcolor_dic, self.push_dic)
+                pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -821,7 +821,7 @@ class TwitcastChat(SubMonitor):
             pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n网址：https://twitcasting.tv/%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_name"], chat["chat_screenname"], chat["chat_text"],
                 self.tgt_channel)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -878,7 +878,7 @@ class FanboxUser(SubMonitor):
         if pushcolor_dic:
             pushtext = "【%s %s 数据改变】\n%s\n网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -923,7 +923,7 @@ class FanboxPost(SubMonitor):
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(postdic[post_id]["post_publishtimestamp"])), self.tgt,
                 post_id)
-            pushall(pushtext, pushcolor_dic, self.push_dic)
+            pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -1130,21 +1130,24 @@ class BilibiliChat(SubMonitor):
                 chat_username = chat_json['info'][2][1]
                 # chat_isadmin = dic['info'][2][2] == '1'
                 # chat_isvip = dic['info'][2][3] == '1'
-                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid, 'chat_username': chat_username}
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
+                        'chat_username': chat_username}
                 self.push(chat)
             elif chat_cmd == 'SEND_GIFT':
                 chat_type = 'gift %s %s' % (chat_json['data']['giftName'], chat_json['data']['num'])
                 chat_text = ''
                 chat_userid = str(chat_json['data']['uid'])
                 chat_username = chat_json['data']['uname']
-                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid, 'chat_username': chat_username}
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
+                        'chat_username': chat_username}
                 self.push(chat)
             elif chat_cmd == 'SUPER_CHAT_MESSAGE':
                 chat_type = 'superchat CN¥%s' % chat_json['data']['price']
                 chat_text = chat_json['data']['message']
                 chat_userid = str(chat_json['data']['uid'])
                 chat_username = chat_json['data']['user_info']['uname']
-                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid, 'chat_username': chat_username}
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
+                        'chat_username': chat_username}
                 self.push(chat)
             return True
         except:
@@ -1157,14 +1160,16 @@ class BilibiliChat(SubMonitor):
         loop.run_until_complete(asyncio.wait(tasks))
         if self.simple_mode != "False":
             if self.pushtext_old:
-                pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_dic)
+                pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                writelog(self.logpath,
+                         '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
         writelog(self.logpath, '[Stop] "%s" run %s' % (self.name, self.tgt))
         # python3.8有bug 无法再次启动await asyncio.open_connection，只能等checkmonitor启动另一个线程
 
     def push(self, chat):
-        writelog(self.logpath, "%s(%s)\t(%s)%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_type"], chat["chat_text"]))
+        writelog(self.logpath,
+                 "%s(%s)\t(%s)%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_type"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_userid"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
@@ -1181,7 +1186,7 @@ class BilibiliChat(SubMonitor):
                     pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
                         self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
                         chat["chat_text"], chat["chat_type"], self.tgt)
-                    pushall(pushtext, pushcolor_dic, self.push_dic)
+                    pushall(pushtext, pushcolor_dic, self.push_list)
                     printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                     writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 else:
@@ -1195,9 +1200,11 @@ class BilibiliChat(SubMonitor):
                             self.pushcolor_dic_old[color] = pushcolor_dic[color]
 
                     if self.pushcount % self.simple_mode == 0:
-                        pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_dic)
-                        printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                        writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                        pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_list)
+                        printlog(
+                            '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                        writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (
+                        self.name, str(self.pushcolor_dic_old), self.pushtext_old))
                         self.pushtext_old = ""
                         # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
                         self.pushcolor_dic_old = {}
@@ -1884,53 +1891,72 @@ def addpushcolordic(*adddics, **kwargs):
     return pushcolor_dic
 
 
-# 全部推送
-def pushall(pushtext, pushcolor_dic, config):
-    pushqq(pushtext, pushcolor_dic, config["pushlist_qq"])
-    return
+# 查询或修改暂停力度
+def checkpause(pause_json, type, id, pausepower=None):
+    is_inpause = None
+    for i in range(len(pause_json)):
+        if pause_json[i]['type'] == type and pause_json[i]['id'] == id:
+            is_inpause = i
 
-
-# QQ推送
-def pushqq(pushtext, pushcolor_dic, config):
-    with open('./pause.json', 'r', encoding='utf-8') as f:
-        pause = json.load(f)
-
-    for qq in config:
-        if qq["id"] in pause["pauseqq"]:
-            pausepower = pause["pauseqq"][qq["id"]]
+    if pausepower is not None:
+        # 修改
+        if is_inpause is not None:
+            pause_json[is_inpause]['pausepower'] = pausepower
+            return pause_json
         else:
-            pausepower = 0
+            pause_json.append({'type': type, 'id': id, 'pausepower': pausepower})
+            return pause_json
+    else:
+        # 查询
+        if is_inpause is not None:
+            return pause_json[is_inpause]['pausepower']
+        else:
+            return None
 
-        for color in qq["color_dic"]:
+
+# 判断是否推送
+def pushall(pushtext, pushcolor_dic, push_list):
+    with open('./pause.json', 'r', encoding='utf-8') as f:
+        pause_json = json.load(f)
+    for push in push_list:
+        pausepower = checkpause(pause_json, push['type'], push['id'])
+        if pausepower is None:
+            pausepower = 0
+        for color in push["color_dic"]:
             if color in pushcolor_dic:
-                if pushcolor_dic[color] - pausepower >= int(qq["color_dic"][color]):
-                    pushtoqq_thread = threading.Thread(args=(pushtext, qq), target=pushtoqq)
-                    pushtoqq_thread.start()
+                if int(pushcolor_dic[color]) - int(pausepower) >= int(push["color_dic"][color]):
+                    push_thread = threading.Thread(args=(pushtext, push), target=pushtoall)
+                    push_thread.start()
                     break
 
 
-# QQ推送到账号
-def pushtoqq(pushtext, qq):
-    qq_type, qq_id, qq_port = qq["type"], qq["id"], qq["port"]
+# 推送
+def pushtoall(pushtext, push):
     # 不论windows还是linux都是127.0.0.1
-    if qq_type == "user":
-        url = 'http://127.0.0.1:%s/send_private_msg?user_id=%s&message=%s' % (qq_port, qq_id, quote(str(pushtext)))
-    elif qq_type == "group":
-        url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (qq_port, qq_id, quote(str(pushtext)))
-    else:
-        return
+    if push['type'] == 'qq_user':
+        url = 'http://127.0.0.1:%s/send_private_msg?user_id=%s&message=%s' % (push['port'], push['id'], quote(str(pushtext)))
+        pushtourl(url)
+    elif push['type'] == 'qq_group':
+        url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (push['port'], push['id'], quote(str(pushtext)))
+        pushtourl(url)
+    elif push['type'] == 'miaotixing':
+        url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
+        pushtourl(url)
 
-    for retry in range(1, 10):
-        status_code, status = "", ""
+
+# 推送到url
+def pushtourl(url):
+    for retry in range(1, 5):
+        status_code = 'fail'
         try:
             response = requests.post(url, timeout=(3, 7))
             status_code = response.status_code
-            status = response.json()['status']
         except:
             time.sleep(5)
-        printlog('推送到QQ%s%s:%s，第%s次，结果%s:%s' % (qq_type, qq_id, qq_port, retry, status_code, status))
-        if status == 'ok':
-            return
+        finally:
+            printlog('[Info] pushtourl：第%s次-结果%s (%s)' % (retry, status_code, url))
+            if status_code == 200:
+                break
 
 
 def printlog(text):
