@@ -2008,6 +2008,9 @@ def createmonitor(monitor_name, config):
 if __name__ == '__main__':
     if not os.path.exists('./log'):
         os.makedirs('./log')
+    if not os.path.isfile('./pause.json'):
+        with open('./pause.json', 'w', encoding='utf-8') as f:
+            json.dump([], f)
 
     # 读取配置文件
     config_name = input('默认为spider，不用输入json后缀名\n请输入配置文件名称：')
