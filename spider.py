@@ -267,7 +267,7 @@ class YoutubeLive(Monitor):
                 monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
-                                                     "youtubechat_config", interval=3, tgt_channel=self.tgt)
+                                                     "youtubechat_config", interval=2, tgt_channel=self.tgt)
                     self.checksubmonitor()
                     printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                     writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -324,13 +324,13 @@ class YoutubeChat(SubMonitor):
                     for chat in chatlist:
                         self.push(chat)
 
-                    # 目标每次请求获取5条评论，间隔时间应在0.1~3秒之间
+                    # 目标每次请求获取5条评论，间隔时间应在0.1~2秒之间
                     if len(chatlist) > 0:
                         self.interval = self.interval * 5 / len(chatlist)
                     else:
-                        self.interval = 3
-                    if self.interval > 3:
-                        self.interval = 3
+                        self.interval = 2
+                    if self.interval > 2:
+                        self.interval = 2
                     if self.interval < 0.1:
                         self.interval = 0.1
                 else:
@@ -741,7 +741,7 @@ class TwitcastLive(Monitor):
                 monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
-                                                     "twitcastchat_config", interval=3, tgt_channel=self.tgt)
+                                                     "twitcastchat_config", interval=2, tgt_channel=self.tgt)
                     self.checksubmonitor()
                     printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                     writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -788,13 +788,13 @@ class TwitcastChat(SubMonitor):
                         self.chat_id_old = chat['chat_id']
                         self.push(chat)
 
-                # 目标每次请求获取5条评论，间隔时间应在0.1~3秒之间
+                # 目标每次请求获取5条评论，间隔时间应在0.1~2秒之间
                 if len(chatlist) > 0:
                     self.interval = self.interval * 5 / len(chatlist)
                 else:
-                    self.interval = 3
-                if self.interval > 3:
-                    self.interval = 3
+                    self.interval = 2
+                if self.interval > 2:
+                    self.interval = 2
                 if self.interval < 0.1:
                     self.interval = 0.1
             else:
@@ -960,7 +960,7 @@ class BilibiliLive(Monitor):
             monitor_name = "%s - BilibiliChat %s" % (self.name, 'offline_chat')
             if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                 self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
-                                                 "bilibilichat_config", interval=3, simple_mode=self.simple_mode)
+                                                 "bilibilichat_config", simple_mode=self.simple_mode)
                 self.checksubmonitor()
             printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
             writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -1007,7 +1007,7 @@ class BilibiliLive(Monitor):
                 monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
-                                                     "bilibilichat_config", interval=3, simple_mode=self.simple_mode)
+                                                     "bilibilichat_config", simple_mode=self.simple_mode)
                     self.checksubmonitor()
                 printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                 writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -1813,6 +1813,7 @@ def getfanboxpostdic(user_id, cookies, proxy):
                 try:
                     post_id = post['id']
                     post_title = post['title']
+                    # python3.8以上才能匹配+08:00形式的时区格式
                     try:
                         post_publishtimestamp = round(
                             time.mktime(time.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z")))
@@ -1820,7 +1821,9 @@ def getfanboxpostdic(user_id, cookies, proxy):
                         post_publishtimestamp = round(time.time())
                     post_type = post['type']
                     post_text = ""
-                    if post['body']:
+                    if 'text' in post['body']:
+                        post_text = post['body']['text']
+                    elif 'blocks' in post['body']:
                         for block in post['body']['blocks']:
                             post_text += "%s\n" % block['text']
                     post_fee = post['feeRequired']
