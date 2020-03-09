@@ -731,7 +731,7 @@ class TwitcastLive(Monitor):
             if pushcolor_dic:
                 pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://twitcasting.tv/%s" % (
                     self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_title"], self.tgt)
-                pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
+                pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
@@ -997,7 +997,7 @@ class BilibiliLive(Monitor):
             if pushcolor_dic:
                 pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://live.bilibili.com/%s" % (
                     self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_title"], self.tgt)
-                pushall(pushtext, pushcolor_dic, self.cfg["push_dic"])
+                pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
