@@ -7,9 +7,11 @@ import re
 import random
 import struct
 import threading
+import websocket
 import asyncio
 import requests
 import json
+import zlib
 from bs4 import BeautifulSoup
 from urllib.parse import quote, unquote
 
@@ -147,7 +149,7 @@ class Monitor(SubMonitor):
             self.submonitor_threads[monitor_name].stop()
 
 
-# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", "no_chat"="True"/"False"
+# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", "no_chat"="True"/"False", "status_push" = "等待|开始|结束|上传|删除"
 class YoutubeLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -173,10 +175,16 @@ class YoutubeLive(Monitor):
             getattr(self, "standby_chat_onstart")
         except:
             self.standby_chat_onstart = "False"
+        # 不记录弹幕
         try:
             getattr(self, "no_chat")
         except:
             self.no_chat = "False"
+        # 需要推送的情况，其中等待|开始|结束是直播和首播才有的情况，上传是视频才有的情况，删除则都存在
+        try:
+            getattr(self, "status_push")
+        except:
+            self.status_push = "等待|开始|结束|上传|删除"
 
     def run(self):
         while not self.stop_now:
@@ -186,8 +194,7 @@ class YoutubeLive(Monitor):
                 for video_id in videodic_new:
                     if video_id not in self.videodic:
                         self.videodic[video_id] = videodic_new[video_id]
-                        if not self.is_firstrun or videodic_new[video_id]["video_status"] == "进行" or \
-                                videodic_new[video_id]["video_status"] == "等待" and self.standby_chat_onstart == "True":
+                        if not self.is_firstrun or videodic_new[video_id]["video_status"] == "等待" and self.standby_chat_onstart == "True" or videodic_new[video_id]["video_status"] == "开始":
                             self.push(video_id)
                 self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
@@ -197,7 +204,7 @@ class YoutubeLive(Monitor):
 
             # 更新视频状态
             for video_id in self.videodic:
-                if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "进行":
+                if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "开始":
                     video_status = getyoutubevideostatus(video_id, self.proxy)
                     if video_status:
                         if self.videodic[video_id]["video_status"] != video_status:
@@ -210,9 +217,7 @@ class YoutubeLive(Monitor):
             time.sleep(self.interval)
 
     def push(self, video_id):
-        if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "进行" or \
-                self.videodic[video_id]["video_type"] == "视频" and self.videodic[video_id]["video_status"] == "结束":
-
+        if self.status_push.count(self.videodic[video_id]["video_status"]):
             # 获取视频简介
             video_description = getyoutubevideodescription(video_id, self.proxy)
             if isinstance(video_description, str):
@@ -231,33 +236,13 @@ class YoutubeLive(Monitor):
 
             # 进行推送
             if pushcolor_dic:
-                pushtext = ""
-                if self.videodic[video_id]["video_type"] == "直播":
-                    if self.videodic[video_id]["video_status"] == "等待":
-                        pushtext = "【%s %s 新直播间】\n标题：%s\n倒计时：%s\n网址：https://www.youtube.com/watch?v=%s" % (
-                            self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_title"],
+                pushtext = "【%s %s %s%s】\n标题：%s\n时间：%s\n网址：https://www.youtube.com/watch?v=%s" % (
+                            self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_type"],
+                            self.videodic[video_id]["video_status"], self.videodic[video_id]["video_title"],
                             waittime(self.videodic[video_id]["video_timestamp"]), video_id)
-                    elif self.videodic[video_id]["video_status"] == "进行":
-                        pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://www.youtube.com/watch?v=%s" % (
-                            self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_title"],
-                            video_id)
-                elif self.videodic[video_id]["video_type"] == "首播":
-                    if self.videodic[video_id]["video_status"] == "等待":
-                        pushtext = "【%s %s 新首播间】\n标题：%s\n倒计时：%s\n网址：https://www.youtube.com/watch?v=%s" % (
-                            self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_title"],
-                            waittime(self.videodic[video_id]["video_timestamp"]), video_id)
-                    elif self.videodic[video_id]["video_status"] == "进行":
-                        pushtext = "【%s %s 首播开始】\n标题：%s\n网址：https://www.youtube.com/watch?v=%s" % (
-                            self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_title"],
-                            video_id)
-                elif self.videodic[video_id]["video_type"] == "视频":
-                    pushtext = "【%s %s 上传视频】\n标题：%s\n网址：https://www.youtube.com/watch?v=%s" % (
-                        self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_title"],
-                        video_id)
-                if pushtext:
-                    pushall(pushtext, pushcolor_dic, self.push_list)
-                    printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-                    writelog(self.logpath,
+                pushall(pushtext, pushcolor_dic, self.push_list)
+                printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                writelog(self.logpath,
                              '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
         if self.no_chat != "True":
@@ -312,7 +297,7 @@ class YoutubeChat(SubMonitor):
                 if self.continuation:
                     writelog(self.logpath, '[Success] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                 else:
-                    printlog('[Error] "%s" getyoutubechatcontinuation' % self.name)
+                    printlog('[Error] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                     writelog(self.logpath, '[Error] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                     time.sleep(5)
                     continue
@@ -437,7 +422,7 @@ class YoutubeNote(SubMonitor):
                 if self.token:
                     writelog(self.logpath, '[Success] "%s" getyoutubetoken %s' % (self.name, self.tgt))
                 else:
-                    printlog('[Error] "%s" getyoutubetoken' % self.name)
+                    printlog('[Error] "%s" getyoutubetoken %s' % (self.name, self.tgt))
                     writelog(self.logpath, '[Error] "%s" getyoutubetoken %s' % (self.name, self.tgt))
                     time.sleep(5)
                     continue
@@ -517,7 +502,7 @@ class TwitterUser(SubMonitor):
                 if pushtext_body:
                     self.push(pushtext_body)
             else:
-                printlog('[Error] "%s" gettwitteruser' % self.name)
+                printlog('[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
@@ -556,7 +541,7 @@ class TwitterTweet(SubMonitor):
                     self.tgt_restid = tgt_dic["user_restid"]
                     writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
                 else:
-                    printlog('[Error] "%s" gettwitteruser' % self.name)
+                    printlog('[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
                     writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
                     time.sleep(5)
                     continue
@@ -576,7 +561,7 @@ class TwitterTweet(SubMonitor):
                             self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
                     writelog(self.logpath, '[Success] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
                 else:
-                    printlog('[Error] "%s" gettwittertweetdic' % self.name)
+                    printlog('[Error] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
                     writelog(self.logpath, '[Error] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
             time.sleep(self.interval)
 
@@ -636,7 +621,7 @@ class TwitterSearch(SubMonitor):
                         self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
                 writelog(self.logpath, '[Success] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
             else:
-                printlog('[Error] "%s" gettwittersearchdic' % self.name)
+                printlog('[Error] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
@@ -679,7 +664,7 @@ class TwitterSearch(SubMonitor):
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt
+# vip=tgt, "no_chat"="True"/"False", "status_push" = "开始|结束"
 class TwitcastLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -696,7 +681,11 @@ class TwitcastLive(Monitor):
             getattr(self, "no_chat")
         except:
             self.no_chat = "False"
-        self.livedic = {}
+        try:
+            getattr(self, "status_push")
+        except:
+            self.status_push = "开始|结束"
+        self.livedic = {"": {"live_status": "结束", "live_title": ""}}
 
     def run(self):
         while not self.stop_now:
@@ -704,40 +693,41 @@ class TwitcastLive(Monitor):
             livedic_new = gettwitcastlive(self.tgt, self.proxy)
             if isinstance(livedic_new, dict):
                 for live_id in livedic_new:
-                    if live_id not in self.livedic or not livedic_new[live_id]["live_status"]:
+                    if live_id not in self.livedic or livedic_new[live_id]["live_status"] == "结束":
                         for live_id_old in self.livedic:
-                            if self.livedic[live_id_old]["live_status"]:
-                                self.livedic[live_id_old]["live_status"] = False
+                            if self.livedic[live_id_old]["live_status"] != "结束":
+                                self.livedic[live_id_old]["live_status"] = "结束"
                                 self.push(live_id_old)
 
                     if live_id not in self.livedic:
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
+                    # 返回非空的live_id则必定为正在直播的状态，不过还是保留防止问题
                     elif self.livedic[live_id]["live_status"] != livedic_new[live_id]["live_status"]:
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
                 writelog(self.logpath, '[Success] "%s" gettwitcastlive %s' % (self.name, self.tgt))
             else:
-                printlog('[Error] "%s" gettwitcastlive' % self.name)
+                printlog('[Error] "%s" gettwitcastlive %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" gettwitcastlive %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
     def push(self, live_id):
-        if self.livedic[live_id]["live_status"]:
+        if self.status_push.count(self.livedic[live_id]["live_status"]):
             pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
             pushcolor_worddic = getpushcolordic(self.livedic[live_id]["live_title"], self.word_dic)
             pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             if pushcolor_dic:
-                pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://twitcasting.tv/%s" % (
-                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_title"], self.tgt)
+                pushtext = "【%s %s 直播%s】\n标题：%s\n网址：https://twitcasting.tv/%s" % (
+                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_status"], self.livedic[live_id]["live_title"], self.tgt)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
         if self.no_chat != "True":
             # 开始记录弹幕
-            if self.livedic[live_id]["live_status"]:
+            if self.livedic[live_id]["live_status"] == "开始":
                 monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
@@ -867,7 +857,7 @@ class FanboxUser(SubMonitor):
                 if pushtext_body:
                     self.push(pushtext_body)
             else:
-                printlog('[Error] "%s" getfanboxuser' % self.name)
+                printlog('[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
@@ -928,7 +918,7 @@ class FanboxPost(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False"
+# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False", "status_push" = "开始|结束"
 class BilibiliLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -953,7 +943,11 @@ class BilibiliLive(Monitor):
             getattr(self, "no_chat")
         except:
             self.no_chat = "False"
-        self.livedic = {}
+        try:
+            getattr(self, "status_push")
+        except:
+            self.status_push = "开始|结束"
+        self.livedic = {"": {"live_status": "结束", "live_title": ""}}
 
     def run(self):
         if self.offline_chat == "True" and self.no_chat != "True":
@@ -970,10 +964,10 @@ class BilibiliLive(Monitor):
             livedic_new = getbilibililivedic(self.tgt, self.proxy)
             if isinstance(livedic_new, dict):
                 for live_id in livedic_new:
-                    if live_id not in self.livedic or not livedic_new[live_id]["live_status"]:
+                    if live_id not in self.livedic or livedic_new[live_id]["live_status"] == "结束":
                         for live_id_old in self.livedic:
-                            if self.livedic[live_id_old]["live_status"]:
-                                self.livedic[live_id_old]["live_status"] = False
+                            if self.livedic[live_id_old]["live_status"] != "结束":
+                                self.livedic[live_id_old]["live_status"] = "结束"
                                 self.push(live_id_old)
 
                     if live_id not in self.livedic:
@@ -984,26 +978,26 @@ class BilibiliLive(Monitor):
                         self.push(live_id)
                 writelog(self.logpath, '[Success] "%s" getbilibililivedic %s' % (self.name, self.tgt))
             else:
-                printlog('[Error] "%s" getbilibililivedic' % self.name)
+                printlog('[Error] "%s" getbilibililivedic %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" getbilibililivedic %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
     def push(self, live_id):
-        if self.livedic[live_id]["live_status"]:
+        if self.status_push.count(self.livedic[live_id]["live_status"]):
             pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
             pushcolor_worddic = getpushcolordic(self.livedic[live_id]["live_title"], self.word_dic)
             pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             if pushcolor_dic:
-                pushtext = "【%s %s 直播开始】\n标题：%s\n网址：https://live.bilibili.com/%s" % (
-                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_title"], self.tgt)
+                pushtext = "【%s %s 直播%s】\n标题：%s\n网址：https://live.bilibili.com/%s" % (
+                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_status"], self.livedic[live_id]["live_title"], self.tgt)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
         if self.offline_chat != "True" and self.no_chat != "True":
             # 开始记录弹幕
-            if self.livedic[live_id]["live_status"]:
+            if self.livedic[live_id]["live_status"] == "开始":
                 monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
@@ -1021,7 +1015,7 @@ class BilibiliLive(Monitor):
                     writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
-# vip=userid, word=text, punish=tgt+push(不包括含有'vip'的类型), 获取弹幕的websocket连接无法直接指定proxy
+# vip=userid, word=text, punish=tgt+push(不包括含有'vip'的类型), 获取弹幕的websocket连接只能使用http proxy
 class BilibiliChat(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -1048,74 +1042,73 @@ class BilibiliChat(SubMonitor):
                     self.simple_mode = 1
             except:
                 self.simple_mode = 1
-        self.connected = False
-        self.time_out = False
-        self.reader = False
-        self.writer = False
+        self.proxyhost = ""
+        self.proxyport = ""
+        if 'http' in self.proxy:
+            proxysplit = self.proxy['http'].split(':')
+            if len(proxysplit) == 2:
+                self.proxyhost = proxysplit[0]
+                self.proxyport = proxysplit[1]
+        
+        self.hostlist = []
+        self.hostcount = 1
+        self.ws = False
+        self.is_linked = False
         self.pushpunish = {}
         if self.tgt in self.vip_dic:
             for color in self.vip_dic[self.tgt]:
                 self.pushpunish[color] = self.vip_dic[self.tgt][color]
-
-    async def sendpacket(self, packet_length, header_length, protocol_version, operation, sequence_id, body):
-        bodybytes = body.encode('utf-8')
-        if packet_length == 0:
-            packet_length = len(bodybytes) + 16
-        packet = struct.pack('!IHHII', packet_length, header_length, protocol_version, operation, sequence_id)
-        if len(bodybytes) != 0:
-            packet = packet + bodybytes
-        self.writer.write(packet)
-        await self.writer.drain()
-
-    async def connect(self):
-        self.reader, self.writer = await asyncio.open_connection('livecmt-1.bilibili.com', 788)
-        body = '{"roomid":%s,"uid":%s}' % (self.tgt, int(100000000000000.0 + 200000000000000.0 * random.random()))
-        await self.sendpacket(0, 16, 1, 7, 1, body)
-        writelog(self.logpath, '[Success] "%s" connect %s' % (self.name, self.tgt))
-        self.connected = True
-
-    async def receivemessageloop(self):
-        await self.connect()
-
-        while not self.stop_now:
-            # 必须读取正确字节数
-            packet_length, = struct.unpack('!I', await self.reader.read(4))
-            header_length, = struct.unpack('!H', await self.reader.read(2))
-            protocol_version, = struct.unpack('!H', await self.reader.read(2))
-            operation, = struct.unpack('!I', await self.reader.read(4))
-            sequence_id, = struct.unpack('!I', await self.reader.read(4))
-            body_length = packet_length - 16
-            if body_length > 0:
-                body = await self.reader.read(body_length)
-            else:
-                body = ""
-
-            # 心跳包回应
-            if operation == 3:
-                self.time_out = time.time()
-
-            # 弹幕和通知
-            if operation == 5:
-                self.parsedanmu(body)
-
-            '''
-            if operation == 3:
-                listener_count = int(body)
-            '''
-
-    async def heartbeatloop(self):
-        while not self.stop_now:
-            if not self.connected:
-                await asyncio.sleep(1)
-            else:
-                await self.sendpacket(0, 16, 1, 2, 1, "")
-                await asyncio.sleep(25)
-                if self.time_out < time.time() - 80:
-                    self.stop_now = True
-
-    def parsedanmu(self, chat_body):
+        
+    def getpacket(self, data, operation):
+        '''
+        packet_length, header_length, protocol_version, operation, sequence_id
+        
+        HANDSHAKE=0, HANDSHAKE_REPLY = 1, HEARTBEAT = 2, HEARTBEAT_REPLY = 3, SEND_MSG = 4
+        SEND_MSG_REPLY = 5, DISCONNECT_REPLY = 6, AUTH = 7, AUTH_REPLY = 8
+        RAW = 9, PROTO_READY = 10, PROTO_FINISH = 11, CHANGE_ROOM = 12
+        CHANGE_ROOM_REPLY = 13, REGISTER = 14, REGISTER_REPLY = 15, UNREGISTER = 16, UNREGISTER_REPLY = 17
+        '''
+        body = json.dumps(data).encode('utf-8')
+        header = struct.pack('>I2H2I', 16+len(body), 16, 1, operation, 1)
+        return header + body
+     
+    def prasepacket(self, packet):
         try:
-            chat_json = json.loads(chat_body.decode('utf-8'))
+            packet = zlib.decompress(packet[16:])
+        except:
+            pass
+    
+        packetlist = []
+        offset = 0
+        while offset < len(packet):
+            try:
+                header = packet[offset:offset+16]
+                headertuple = struct.Struct('>I2H2I').unpack_from(header)
+                packet_length = headertuple[0]
+                operation = headertuple[3]
+                
+                body = packet[offset+16:offset+packet_length]
+                try:
+                    data = json.loads(body.decode('utf-8'))
+                    packetlist.append({"data": data, "operation": operation})
+                except:
+                    packetlist.append({"data": body, "operation": operation})
+                
+                offset += packet_length
+            except:
+                continue
+        return packetlist
+            
+    def heartbeat(self):
+        while not self.stop_now:
+            if self.is_linked:
+                self.ws.send(self.getpacket({}, 2))
+                time.sleep(30)
+            else:
+                time.sleep(1)
+    
+    def parsedanmu(self, chat_json):
+        try:
             chat_cmd = chat_json['cmd']
             '''
             if chat_cmd == 'LIVE': # 直播开始
@@ -1149,24 +1142,76 @@ class BilibiliChat(SubMonitor):
                 chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
                         'chat_username': chat_username}
                 self.push(chat)
-            return True
         except:
-            return False
-
-    def run(self):
-        tasks = [self.receivemessageloop(), self.heartbeatloop()]
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(asyncio.wait(tasks))
+            pass
+    
+    def on_open(self):
+        # 未登录uid则为0，注意int和str类有区别，protover为1则prasepacket中无需用zlib解压
+        auth_data = {
+            'uid': 0, 
+            'roomid': int(self.tgt),
+            'protover': 2,
+            'platform': 'web',
+            'clientver': '1.10.3',
+            'type': 2,
+            'key': requests.get('https://api.live.bilibili.com/room/v1/Danmu/getConf', proxies=self.proxy).json()['data']['token']
+        }
+        self.ws.send(self.getpacket(auth_data, 7))
+        writelog(self.logpath, '[Start] "%s" connect %s' % (self.name, self.tgt))
+    
+    def on_message(self, message):
+        packetlist = self.prasepacket(message)
+        
+        for packet in packetlist:
+            if packet["operation"] == 8:
+                self.is_linked = True
+                writelog(self.logpath, '[Success] "%s" connected %s' % (self.name, self.tgt))
+            
+            if packet["operation"] == 5:
+                if isinstance(packet["data"], dict):
+                    self.parsedanmu(packet["data"])
+    
+    def on_error(self, error):
+        writelog(self.logpath, '[Error] "%s" error %s: %s' % (self.name, self.tgt, error))
+    
+    def on_close(self):
+        # 推送剩余的弹幕
         if self.simple_mode != "False":
             if self.pushtext_old:
                 pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                writelog(self.logpath,
-                         '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-        writelog(self.logpath, '[Stop] "%s" run %s' % (self.name, self.tgt))
-        # python3.8有bug 无法再次启动await asyncio.open_connection，只能等checkmonitor启动另一个线程
+                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                
+                self.pushtext_old = ""
+                # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
+        
+        self.is_linked = False
+        writelog(self.logpath, '[Stop] "%s" disconnect %s' % (self.name, self.tgt))
 
+    def run(self):
+        # 启动heartbeat线程
+        heartbeat_thread = threading.Thread(target=self.heartbeat, args=())
+        heartbeat_thread.Daemon = True
+        heartbeat_thread.start()
+        
+        while not self.stop_now:
+            if self.hostcount < len(self.hostlist):
+                host = self.hostlist[self.hostcount]
+                self.hostcount += 1
+                
+                self.ws = websocket.WebSocketApp(host,on_open=self.on_open,on_message=self.on_message,on_error=self.on_error,on_close=self.on_close)
+                self.ws.run_forever(http_proxy_host=self.proxyhost, http_proxy_port=self.proxyport)
+            else:
+                self.hostlist = getbilibilichathostlist(self.proxy)
+                self.hostcount = 0
+                
+                if self.hostlist:
+                    writelog(self.logpath, '[Success] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
+                else:
+                    time.sleep(5)
+                    printlog('[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
+                    writelog(self.logpath, '[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
+    
     def push(self, chat):
         writelog(self.logpath,
                  "%s(%s)\t(%s)%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_type"], chat["chat_text"]))
@@ -1204,7 +1249,7 @@ class BilibiliChat(SubMonitor):
                         printlog(
                             '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
                         writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (
-                        self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                            self.name, str(self.pushcolor_dic_old), self.pushtext_old))
                         self.pushtext_old = ""
                         # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
                         self.pushcolor_dic_old = {}
@@ -1218,6 +1263,10 @@ class BilibiliChat(SubMonitor):
                     self.pushpunish[color] += 1
                 else:
                     self.pushpunish[color] = 1
+
+    def stop(self):
+        self.stop_now = True
+        self.ws.close()
 
 
 def getyoutubevideodic(user_id, proxy):
@@ -1233,7 +1282,7 @@ def getyoutubevideodic(user_id, proxy):
                     video_id = video.h3.a["href"].replace('/watch?v=', '')
                     video_title = video.h3.a["title"]
                     if len(video.find(class_="yt-lockup-meta-info").find_all("li")) > 1:
-                        video_type, video_status = "视频", "结束"
+                        video_type, video_status = "视频", "上传"
                         video_timestamp = round(time.time())
                     else:
                         timestamp = video.find(attrs={"data-timestamp": True})
@@ -1242,14 +1291,14 @@ def getyoutubevideodic(user_id, proxy):
                                 video_type, video_status = "首播", "等待"
                                 video_timestamp = timestamp["data-timestamp"]
                             else:
-                                video_type, video_status = "首播", "进行"
+                                video_type, video_status = "首播", "开始"
                                 video_timestamp = round(time.time())
                         else:
                             if timestamp:
                                 video_type, video_status = "直播", "等待"
                                 video_timestamp = timestamp["data-timestamp"]
                             else:
-                                video_type, video_status = "直播", "进行"
+                                video_type, video_status = "直播", "开始"
                                 video_timestamp = round(time.time())
                     videolist[video_id] = {"video_title": video_title, "video_type": video_type,
                                            "video_status": video_status, "video_timestamp": video_timestamp}
@@ -1270,7 +1319,7 @@ def getyoutubevideostatus(video_id, proxy):
         if response.status_code == 200:
             try:
                 if response.json()["stop_heartbeat"] == "1":
-                    video_status = "结束"
+                    video_status = "上传"
                     return video_status
                 else:
                     # 测试中stop_heartbeat只在类型为视频的情况下出现且值为1
@@ -1279,7 +1328,7 @@ def getyoutubevideostatus(video_id, proxy):
                 if response.json()["status"] == "stop":
                     video_status = "删除"
                 elif response.json()["status"] == "ok":
-                    video_status = "进行"
+                    video_status = "开始"
                 elif "displayEndscreen" in response.json()["liveStreamability"]["liveStreamabilityRenderer"]:
                     video_status = "结束"
                 else:
@@ -1714,9 +1763,9 @@ def gettwitcastlive(user_id, proxy):
             live = response.text.split("\t")
             live_id = live[0]
             if live_id:
-                live_status = True
+                live_status = "开始"
             else:
-                live_status = False
+                live_status = "结束"
             live_title = unquote(live[7])
             live_dic[live_id] = {"live_status": live_status, "live_title": live_title}
             return live_dic
@@ -1850,9 +1899,9 @@ def getbilibililivedic(room_id, proxy):
             except:
                 live_id = ''
             if live['live_status'] == 1:
-                live_status = True
+                live_status = "开始"
             else:
-                live_status = False
+                live_status = "结束"
             live_title = live['title']
             live_dic[live_id] = {'live_status': live_status, 'live_title': live_title}
             return live_dic
@@ -1860,6 +1909,23 @@ def getbilibililivedic(room_id, proxy):
             return False
     except:
         return False
+
+
+def getbilibilichathostlist(proxy):
+    hostlist = []
+    try:
+        response = requests.get("https://api.live.bilibili.com/room/v1/Danmu/getConf", proxies=proxy)
+        if response.status_code == 200:
+            hostserver_list = response.json()['data']['host_server_list']
+            for hostserver in hostserver_list:
+                try:
+                    hostlist.append('wss://%s:%s/sub' % (hostserver['host'], hostserver['wss_port']))
+                except:
+                    continue
+    except:
+        # 如果返回false会出错
+        pass
+    return hostlist
 
 
 # 检测推送力度
@@ -1943,7 +2009,9 @@ def pushtoall(pushtext, push):
         url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (push['port'], push['id'], quote(str(pushtext)))
         pushtourl(url)
     elif push['type'] == 'miaotixing':
-        url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
+        # 带文字推送可能导致语音和短信提醒失效，所以目前先不推送文字
+        # url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
+        url = 'https://miaotixing.com/trigger?id=%s' % push['id']
         pushtourl(url)
 
 
@@ -1981,9 +2049,13 @@ def waittime(timestamp):
 
 
 def second_to_time(seconds):
-    d, seconds = divmod(seconds, 86400)
-    h, seconds = divmod(seconds, 3600)
-    m, s = divmod(seconds, 60)
+    d = round(seconds / 86400)
+    seconds = seconds - d * 86400
+    h = round(seconds / 3600)
+    seconds = seconds - h * 3600
+    m = round(seconds / 60)
+    s = seconds - m * 60
+    
     if d == 0:
         if h == 0:
             return "%s分%s秒" % (m, s)
