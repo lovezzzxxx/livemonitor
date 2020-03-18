@@ -248,7 +248,7 @@ class YoutubeLive(Monitor):
         if self.no_chat != "True":
             # 开始记录弹幕
             if self.videodic[video_id]["video_status"] == "等待" and self.standby_chat == "True" or \
-                    self.videodic[video_id]["video_status"] == "进行":
+                    self.videodic[video_id]["video_status"] == "开始":
                 monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
@@ -631,7 +631,7 @@ class TwitterSearch(SubMonitor):
             is_live = False
             for url in tweetdic[tweet_id]["tweet_urls"]:
                 if url.count("https://youtu.be/"):
-                    if getyoutubevideostatus(url.replace("https://youtu.be/", ""), self.proxy) == "进行":
+                    if getyoutubevideostatus(url.replace("https://youtu.be/", ""), self.proxy) == "开始":
                         is_live = True
                         break
         else:
@@ -2049,11 +2049,11 @@ def waittime(timestamp):
 
 
 def second_to_time(seconds):
-    d = round(seconds / 86400)
+    d = int(seconds / 86400)
     seconds = seconds - d * 86400
-    h = round(seconds / 3600)
+    h = int(seconds / 3600)
     seconds = seconds - h * 3600
-    m = round(seconds / 60)
+    m = int(seconds / 60)
     s = seconds - m * 60
     
     if d == 0:
