@@ -85,7 +85,8 @@ nonebot机器人通过和coolq机器人的coolq-http-api插件建立websocket连
     "push_list": [ # 指定推送对象
         {"type": "qq_user", "id": "qq号", "port": 5700, "color_dic": {"mea": 1}},
         {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
-        {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}}
+        {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
+        {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}} #不推送文字，防止语音或者短信推送失效
     ]
 }
 ```
