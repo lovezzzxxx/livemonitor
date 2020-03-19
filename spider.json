@@ -9,7 +9,7 @@
 	"youtube": {
 		"interval": 180,
 		"submonitor_dic": {
-			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "True"},
+			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "True", "status_push": "等待|开始|结束|上传|删除"},
 			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60},
 			"YoutubeLive 神楽めあ子频道": {"class": "YoutubeLive", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
 			"YoutubeCom 神楽めあ子频道": {"class": "YoutubeCom", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
@@ -60,7 +60,7 @@
 		"submonitor_dic": {
 			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "True"},
 			"TwitterTweet 神楽めあ": {"class": "TwitterTweet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
-			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
+			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "status_push": "开始|结束"},
 			"TwitterUser 愛繋璃": {"class": "TwitterUser", "target": "maturin_love221", "target_name": "愛繋璃", "config_name": "twitter_config", "interval": 60},
 			"TwitterTweet 愛繋璃": {"class": "TwitterTweet", "target": "maturin_love221", "target_name": "愛繋璃", "config_name": "twitter_config", "interval": 60},
 			"TwitcastLive 愛繋璃": {"class": "TwitcastLive", "target": "maturin_love221", "target_name": "愛繋璃", "config_name": "twitter_config", "interval": 60},
@@ -135,7 +135,7 @@
 	"bilibili": {
 		"interval": 180,
 		"submonitor_dic": {
-			"BilibiliLive 神楽めあ": {"class": "BilibiliLive", "target": "12235923", "target_name": "神楽めあ", "config_name": "bilibili_config", "interval": 60, "simple_mode": "10"}
+			"BilibiliLive 神楽めあ": {"class": "BilibiliLive", "target": "12235923", "target_name": "神楽めあ", "config_name": "bilibili_config", "interval": 60, "simple_mode": "10", "status_push": "开始|结束"}
 		},
 		"bilibili_config": {
 			"interval": 180,
