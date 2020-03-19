@@ -2009,8 +2009,10 @@ def pushtoall(pushtext, push):
         url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (push['port'], push['id'], quote(str(pushtext)))
         pushtourl(url)
     elif push['type'] == 'miaotixing':
-        # 带文字推送可能导致语音和短信提醒失效，所以目前先不推送文字
-        # url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
+        # 带文字推送可能导致语音和短信提醒失效
+        url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
+        pushtourl(url)
+    elif push['type'] == 'miaotixing_simple':
         url = 'https://miaotixing.com/trigger?id=%s' % push['id']
         pushtourl(url)
 
