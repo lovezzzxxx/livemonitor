@@ -3,7 +3,7 @@
   
   * pausebot.py和plugins为启动nonebot机器人的脚本及插件。用于让用户可以通过qq对推送力度进行查看和修改。 
 
-感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)提供的b站弹幕接口。  
+感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)与[blivedm](https://github.com/xfgryujk/blivedm)的b站弹幕接口。  
 
 ### 关于release
 release中发布的exe版本可以在windows中直接运行，无需安装python和依赖库。exe版本和原始版本主要的区别是不支持nonebot，无法回应qq发送的指令，也无需安装pausebot.py和plugins。
