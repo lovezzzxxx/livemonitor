@@ -1870,11 +1870,12 @@ def getfanboxpostdic(user_id, cookies, proxy):
                         post_publishtimestamp = round(time.time())
                     post_type = post['type']
                     post_text = ""
-                    if 'text' in post['body']:
-                        post_text = post['body']['text']
-                    elif 'blocks' in post['body']:
-                        for block in post['body']['blocks']:
-                            post_text += "%s\n" % block['text']
+                    if isinstance(post['body'], dict):
+                        if 'text' in post['body']:
+                            post_text = post['body']['text']
+                        elif 'blocks' in post['body']:
+                            for block in post['body']['blocks']:
+                                post_text += "%s\n" % block['text']
                     post_fee = post['feeRequired']
                     post_dic[post_id] = {"post_title": post_title, "post_publishtimestamp": post_publishtimestamp,
                                          "post_type": post_type, "post_text": post_text, "post_fee": post_fee}
