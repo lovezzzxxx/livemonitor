@@ -118,7 +118,7 @@ BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、
 ##### 运行闪退
 请确保使用的配置文件（默认为spider.json）为标准的json格式
 ##### 运行后出现很多error信息
-如果同时存在youtube和twitter监视器的error信息，可能是网络原因导致的，由于在脚本刚开始运行时会产生比较多的请求，可能会导致一些请求超时。可以尝试等待一段时间或者重启脚本。
+如果同时存在youtube和twitter监视器的error信息，可能是网络原因导致的，由于在脚本刚开始运行时会产生比较多的请求，可能会导致一些请求超时。可以尝试等待一段时间或者重启脚本。  
 如果只有twitter监视器的error信息，可能是twitter配置下的cookies不正确导致的，请确保cookies也为json格式，下面是一个cookies示例。
 ```
 "cookies"： {"_ga":"12345678","_gid":"12345678","_twitter_sess":"12345678","ads_prefs":""12345678"","auth_token":"12345678","csrf_same_site":"12345678","csrf_same_site_set":"12345678","ct0":"12345678","dnt":"12345678","gt":"12345678","guest_id":"12345678","kdt":"12345678","lang":"12345678","personalization_id":""12345678"","remember_checked_on":"12345678","rweb_optin":"12345678","twid":"u=12345678"},
