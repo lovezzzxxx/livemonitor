@@ -127,4 +127,6 @@ BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、
 # 想做的事
   * 添加bilibili动态监视器
   * 添加steam、LOL、apex等监视器
+  * 加入图片与视频推送
   * 加入telegram推送支持
+  * 加入discprd推送支持
