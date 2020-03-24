@@ -1,15 +1,9 @@
 # 功能介绍
-  * spider.py、spider.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测，支持推送到qq用户、qq群、喵提醒。  
-  
-  * pausebot.py和plugins为启动nonebot机器人的脚本及插件。用于让用户可以通过qq对推送力度进行查看和修改。 
+  * spider.py、spider.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测，支持推送到qq用户、qq群、喵提醒、discord、telegram。  
+  * release中发布的exe版本可以在windows中直接运行，无需安装python和依赖库
 
 感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)与[blivedm](https://github.com/xfgryujk/blivedm)的b站弹幕接口。  
 
-### 关于release
-release中发布的exe版本可以在windows中直接运行，无需安装python和依赖库。exe版本和原始版本主要的区别是不支持nonebot，无法回应qq发送的指令，也无需安装pausebot.py和plugins。
-
-### 不兼容提示
-2020/3/8 需要修改旧版配置文件中的push_dic部分为示例中push_list的形式
 
 # 环境依赖
 ## 检测脚本本体
@@ -18,7 +12,7 @@ release中发布的exe版本可以在windows中直接运行，无需安装python
 ##### 启动方法
   在命令行中运行`python3 spider.py`，按照提示选择配置文件。
   
-## qq推送部分(可选)
+## qq推送(可选)
 ##### 安装方法
   * coolq机器人([windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558))和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)  
 
@@ -28,20 +22,15 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
 ##### 启动方法
 在安装设置完成后运行并登录即可。
 
-## qq响应部分(可选)
-##### 安装方法
-  * [nonebot机器人](https://nonebot.cqp.moe/)、启动脚本(pausebot.py)和相应插件(plugins文件夹)  
-
-nonebot机器人通过和coolq机器人的coolq-http-api插件建立websocket连接来响应用户的指令，让用户可以通过向bot账号发送`/check`或`/pause`等指令来修改推送力度。  
-在命令行中运行`pip3 install nonebot`即可安装nonebot机器人本体，再将pausebot.py和plugins文件夹下载到本地任意目录。  
-启用coolq-http-api插件后coolq机器人文件夹的app\io.github.richardchien.coolqhttpapi\config或data\app\io.github.richardchien.coolqhttpapi\config中将会产生一个json文件，将其中的内容替换为此项目中相应设置示例的内容即可。如果不使用nontbot机器人功能则不用修改。
-##### 启动方法
-  在命令行中运行`python3 pausebot.py`，按照提示设置ip地址和端口。此时如果配置正确的话命令行应该会显示形如`[2019-01-26 16:23:17,159] 172.29.84.18:50639 GET /ws/api/ 1.1 101 - 986``[2019-01-26 16:23:17,201] 172.29.84.18:53839 GET /ws/event/ 1.1 101 - 551`的两条提示。
-##### 使用方法
-在qq中向coolq机器人登录的qq账号发送消息（私聊消息需要为好友，在同一个群聊中则没有限制），发送`\check`可以检测推送阻力，发送`\pause 数字`可以设置推送阻力，另外`\echo 文字`或`复读文字`可以让bot复读，`\test`或`在吗`可以让bot回复。
-
 ## 喵提醒(可选)
 在喵提醒微信公众号中选择'提醒'-'添加提醒'，完成设置后将会收到一个喵提醒号。更加详细的说明可以在其微信公众号中查看。
+
+## discord推送(可选)
+在discord频道右键-编辑频道-webhook-创建webhook(需要编辑webhook权限)，完成设置后将会产生一个webhook链接。
+
+## telegram推送(可选)
+在telegram中搜索botfather-发送/newbot-输入bot用户名-输入bot id，完成设置后将会产生一个bot token。用户群聊或频道号为邀请链接中的t.me/后面的部分。
+
 
 # 脚本详解
 ### 脚本运行原理
@@ -86,7 +75,9 @@ nonebot机器人通过和coolq机器人的coolq-http-api插件建立websocket连
         {"type": "qq_user", "id": "qq号", "port": 5700, "color_dic": {"mea": 1}},
         {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
         {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-        {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}} #不推送文字，防止语音或者短信推送失效
+        {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}}, #不推送文字，防止语音或者短信推送失效
+				    {"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
+			    	{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
     ]
 }
 ```
@@ -100,7 +91,7 @@ nonebot机器人通过和coolq机器人的coolq-http-api插件建立websocket连
 __子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
 :---|:---|:---|:---|:---|:---|:---|:---
 Monitor|作为基本监视器管理子监视器组|interval|||||
-YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_dic|target|标题、简介|可留空|"standby_chat"="True"/"False"，"standby_chat_onstart"="True"/"False"，"no_chat"="True"/"False"，"status_push" = "等待\|开始\|结束\|上传\|删除"|standby_chat为是否检测待机直播间的弹幕 默认为"False"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False"，no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"等待|开始|结束|上传|删除"
+YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_list|target|标题、简介|可留空|"standby_chat"="True"/"False"，"standby_chat_onstart"="True"/"False"，"no_chat"="True"/"False"，"status_push" = "等待\|开始\|结束\|上传\|删除"|standby_chat为是否检测待机直播间的弹幕 默认为"False"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False"，no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"等待|开始|结束|上传|删除"
 YoutubeChat|监视youtube直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由YoutubeLive监视器创建 无需在配置文件中指定
 YoutubeCom|监视youtube社区帖子|同上|target|帖子文字|付费帖子，可留空|||
 YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包括superchat）|用户通知，必要|||
@@ -128,5 +119,3 @@ BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、
   * 添加bilibili动态监视器
   * 添加steam、LOL、apex等监视器
   * 加入图片与视频推送
-  * 加入telegram推送支持
-  * 加入discprd推送支持
