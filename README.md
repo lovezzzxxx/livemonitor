@@ -29,7 +29,7 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
 在discord频道右键-编辑频道-webhook-创建webhook(需要编辑webhook权限)，完成设置后将会产生一个webhook链接。
 
 ## telegram推送(可选)
-在telegram中搜索botfather-发送/newbot-输入bot用户名-输入bot id，完成设置后将会产生一个bot token。用户群聊或频道号为邀请链接中的t.me/后面的部分。
+在telegram中搜索botfather-发送/newbot-输入bot用户名-输入bot id，完成设置后将会产生一个bot token。用户群聊或频道号为邀请链接中的t.me/后面的部分，如果需要在群聊或频道中发言需要先邀请bot进群。
 
 
 # 脚本详解
