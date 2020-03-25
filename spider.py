@@ -908,8 +908,8 @@ class FanboxPost(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 社区帖子】\n内容：%s\n类型：%s\n档位：%s\n时间：%s (GMT)\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
-                self.__class__.__name__, self.tgt_name, postdic[post_id]["post_text"][0:3000],
+            pushtext = "【%s %s 社区帖子】\n标题：%s\n内容：%s\n类型：%s\n档位：%s\n时间：%s (GMT)\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
+                self.__class__.__name__, self.tgt_name, postdic[post_id]["post_title"], postdic[post_id]["post_text"][0:2500],
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(postdic[post_id]["post_publishtimestamp"])), self.tgt,
                 post_id)
@@ -2016,20 +2016,28 @@ def pushtoall(pushtext, push):
     elif push['type'] == 'miaotixing_simple':
         url = 'https://miaotixing.com/trigger?id=%s' % push['id']
         pushtourl(url)
+    elif push['type'] == 'discord':
+        url = push['id']
+        headers = {"Content-Type": "application/json"}
+        data = {"content": pushtext}
+        pushtourl(url, headers, json.dumps(data))
+    elif push['type'] == 'telegram':
+        url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=@%s&text=%s' % (push['bot_id'], push['id'], quote(str(pushtext)))
+        pushtourl(url)
 
 
 # 推送到url
-def pushtourl(url):
+def pushtourl(url, headers={}, data={}):
     for retry in range(1, 5):
         status_code = 'fail'
         try:
-            response = requests.post(url, timeout=(3, 7))
+            response = requests.post(url, headers=headers, data=data, timeout=(3, 7))
             status_code = response.status_code
         except:
             time.sleep(5)
         finally:
             printlog('[Info] pushtourl：第%s次-结果%s (%s)' % (retry, status_code, url))
-            if status_code == 200:
+            if status_code == 200 or status_code == 204:
                 break
 
 
