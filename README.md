@@ -1,6 +1,6 @@
 # 功能介绍
   * spider.py、spider.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测，支持推送到qq用户、qq群、喵提醒、discord、telegram。  
-  * release中发布的exe版本可以在windows中直接运行，无需安装python和依赖库
+  * release中发布的exe版本可以在windows中直接运行，无需依赖、点开即用。
 
 感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)与[blivedm](https://github.com/xfgryujk/blivedm)的b站弹幕接口。  
 
