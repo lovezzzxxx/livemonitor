@@ -149,7 +149,7 @@ class Monitor(SubMonitor):
             self.submonitor_threads[monitor_name].stop()
 
 
-# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", "no_chat"="True"/"False", "status_push" = "等待|开始|结束|上传|删除"
+# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", no_chat="True"/"False", status_push="等待|开始|结束|上传|删除", regen="False", regen_amount="1"
 class YoutubeLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -185,7 +185,17 @@ class YoutubeLive(Monitor):
             getattr(self, "status_push")
         except:
             self.status_push = "等待|开始|结束|上传|删除"
-
+        # 推送惩罚恢复间隔
+        try:
+            getattr(self, "regen")
+        except:
+            self.regen = "False"
+        # 每次推送惩罚恢复量
+        try:
+            getattr(self, "regen_amount")
+        except:
+            self.regen_amount = 1
+        
     def run(self):
         while not self.stop_now:
             # 更新视频列表
@@ -252,7 +262,7 @@ class YoutubeLive(Monitor):
                 monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
-                                                     "youtubechat_config", interval=2, tgt_channel=self.tgt)
+                                                     "youtubechat_config", tgt_channel=self.tgt, interval=2, regen=self.regen, regen_amount=self.regen_amount)
                     self.checksubmonitor()
                     printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                     writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -281,14 +291,20 @@ class YoutubeChat(SubMonitor):
         # continuation为字符
         self.continuation = False
         self.pushpunish = {}
+        self.regen_time = 0
         try:
             getattr(self, "tgt_channel")
         except:
             self.tgt_channel = ""
-        if self.tgt_channel in self.vip_dic:
-            for color in self.vip_dic[self.tgt_channel]:
-                self.pushpunish[color] = self.vip_dic[self.tgt_channel][color]
-
+        try:
+            self.regen = int(self.regen)
+        except:
+            self.regen = "False"
+        try:
+            self.regen_amount = int(self.regen_amount)
+        except:
+            self.regen_amount = 1
+            
     def run(self):
         while not self.stop_now:
             # 获取continuation
@@ -333,11 +349,7 @@ class YoutubeChat(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
-            for color in self.pushpunish:
-                if color in pushcolor_dic and not color.count("vip"):
-                    if pushcolor_dic[color] <= self.pushpunish[color]:
-                        pushcolor_dic[color] -= self.pushpunish[color]
+            pushcolor_dic = self.punish(pushcolor_dic)
 
             pushtext = "【%s %s 直播评论】\n用户：%s\n内容：%s\n类型：%s\n网址：https://www.youtube.com/watch?v=%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_text"], chat["chat_type"],
@@ -345,14 +357,40 @@ class YoutubeChat(SubMonitor):
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-
-            # 更新pushpunish
-            for color in pushcolor_dic:
-                if pushcolor_dic[color] > 0 and not color.count("vip"):
-                    if color in self.pushpunish:
-                        self.pushpunish[color] += 1
+    
+    def punish(self, pushcolor_dic):
+        # 推送惩罚恢复
+        if self.regen != "False":
+            time_now = round(time.time())
+            regen_amt = int((time_now - self.regen_time) / self.regen) * self.regen_amount
+            if regen_amt:
+                self.regen_time = time_now
+                for color in list(self.pushpunish):
+                    if self.pushpunish[color] > regen_amt:
+                        print(color, self.pushpunish[color], regen_amt)
+                        self.pushpunish[color] -= regen_amt
                     else:
-                        self.pushpunish[color] = 1
+                        self.pushpunish.pop(color)
+        
+        # 去除来源频道的相关权重
+        if self.tgt_channel in self.vip_dic:
+            for color in self.vip_dic[self.tgt_channel]:
+                if color in pushcolor_dic and not color.count("vip"):
+                    pushcolor_dic[color] -= self.vip_dic[self.tgt_channel][color]
+        
+        # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
+        for color in self.pushpunish:
+            if color in pushcolor_dic and not color.count("vip"):
+                pushcolor_dic[color] -= self.pushpunish[color]
+        
+        # 更新pushpunish
+        for color in pushcolor_dic:
+            if pushcolor_dic[color] > 0 and not color.count("vip"):
+                if color in self.pushpunish:
+                    self.pushpunish[color] += 1
+                else:
+                    self.pushpunish[color] = 1
+        return pushcolor_dic
 
 
 # vip=tgt, word=text
@@ -664,7 +702,7 @@ class TwitterSearch(SubMonitor):
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, "no_chat"="True"/"False", "status_push" = "开始|结束"
+# vip=tgt, "no_chat"="True"/"False", "status_push" = "开始|结束", regen="False", regen_amount="1"
 class TwitcastLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -676,7 +714,8 @@ class TwitcastLive(Monitor):
         # 重新设置submonitorconfig用于启动子线程，并添加频道id信息到子进程使用的cfg中
         self.submonitorconfig_setname("twitcastchat_submonitor_cfg")
         self.submonitorconfig_addconfig("twitcastchat_config", self.cfg)
-
+        
+        self.livedic = {"": {"live_status": "结束", "live_title": ""}}
         try:
             getattr(self, "no_chat")
         except:
@@ -685,7 +724,14 @@ class TwitcastLive(Monitor):
             getattr(self, "status_push")
         except:
             self.status_push = "开始|结束"
-        self.livedic = {"": {"live_status": "结束", "live_title": ""}}
+        try:
+            getattr(self, "regen")
+        except:
+            self.regen = "False"
+        try:
+            getattr(self, "regen_amount")
+        except:
+            self.regen_amount = 1
 
     def run(self):
         while not self.stop_now:
@@ -731,7 +777,7 @@ class TwitcastLive(Monitor):
                 monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
-                                                     "twitcastchat_config", interval=2, tgt_channel=self.tgt)
+                                                     "twitcastchat_config", tgt_channel=self.tgt, interval=2, regen=self.regen, regen_amount=self.regen_amount)
                     self.checksubmonitor()
                     printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                     writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -763,9 +809,14 @@ class TwitcastChat(SubMonitor):
             getattr(self, "tgt_channel")
         except:
             self.tgt_channel = ""
-        if self.tgt_channel in self.vip_dic:
-            for color in self.vip_dic[self.tgt_channel]:
-                self.pushpunish[color] = self.vip_dic[self.tgt_channel][color]
+        try:
+            self.regen = int(self.regen)
+        except:
+            self.regen = "False"
+        try:
+            self.regen_amount = int(self.regen_amount)
+        except:
+            self.regen_amount = 1
 
     def run(self):
         while not self.stop_now:
@@ -802,12 +853,8 @@ class TwitcastChat(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
-            for color in self.pushpunish:
-                if color in pushcolor_dic and not color.count("vip"):
-                    if pushcolor_dic[color] <= self.pushpunish[color]:
-                        pushcolor_dic[color] -= self.pushpunish[color]
-
+            pushcolor_dic = self.punish(pushcolor_dic)
+            
             pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n网址：https://twitcasting.tv/%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_name"], chat["chat_screenname"], chat["chat_text"],
                 self.tgt_channel)
@@ -815,13 +862,35 @@ class TwitcastChat(SubMonitor):
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
-            # 更新pushpunish
-            for color in pushcolor_dic:
-                if pushcolor_dic[color] > 0 and not color.count("vip"):
-                    if color in self.pushpunish:
-                        self.pushpunish[color] += 1
+    def punish(self, pushcolor_dic):
+        if self.regen != "False":
+            time_now = round(time.time())
+            regen_amt = int((time_now - self.regen_time) / self.regen) * self.regen_amount
+            if regen_amt:
+                self.regen_time = time_now
+                for color in list(self.pushpunish):
+                    if self.pushpunish[color] > regen_amt:
+                        print(color, self.pushpunish[color], regen_amt)
+                        self.pushpunish[color] -= regen_amt
                     else:
-                        self.pushpunish[color] = 1
+                        self.pushpunish.pop(color)
+        
+        if self.tgt_channel in self.vip_dic:
+            for color in self.vip_dic[self.tgt_channel]:
+                if color in pushcolor_dic and not color.count("vip"):
+                    pushcolor_dic[color] -= self.vip_dic[self.tgt_channel][color]
+        
+        for color in self.pushpunish:
+            if color in pushcolor_dic and not color.count("vip"):
+                pushcolor_dic[color] -= self.pushpunish[color]
+        
+        for color in pushcolor_dic:
+            if pushcolor_dic[color] > 0 and not color.count("vip"):
+                if color in self.pushpunish:
+                    self.pushpunish[color] += 1
+                else:
+                    self.pushpunish[color] = 1
+        return pushcolor_dic
 
 
 # vip=tgt
@@ -918,7 +987,7 @@ class FanboxPost(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False", "status_push" = "开始|结束"
+# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False", "status_push" = "开始|结束", regen="False", regen_amount="1"
 class BilibiliLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -931,6 +1000,7 @@ class BilibiliLive(Monitor):
         self.submonitorconfig_setname("bilibilichat_submonitor_cfg")
         self.submonitorconfig_addconfig("bilibilichat_config", self.cfg)
 
+        self.livedic = {"": {"live_status": "结束", "live_title": ""}}
         try:
             getattr(self, "offline_chat")
         except:
@@ -947,8 +1017,15 @@ class BilibiliLive(Monitor):
             getattr(self, "status_push")
         except:
             self.status_push = "开始|结束"
-        self.livedic = {"": {"live_status": "结束", "live_title": ""}}
-
+        try:
+            getattr(self, "regen")
+        except:
+            self.regen = "False"
+        try:
+            getattr(self, "regen_amount")
+        except:
+            self.regen_amount = 1
+        
     def run(self):
         if self.offline_chat == "True" and self.no_chat != "True":
             monitor_name = "%s - BilibiliChat %s" % (self.name, 'offline_chat')
@@ -1001,7 +1078,7 @@ class BilibiliLive(Monitor):
                 monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
-                                                     "bilibilichat_config", simple_mode=self.simple_mode)
+                                                     "bilibilichat_config", simple_mode=self.simple_mode, regen=self.regen, regen_amount=self.regen_amount)
                     self.checksubmonitor()
                 printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                 writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -1055,9 +1132,14 @@ class BilibiliChat(SubMonitor):
         self.ws = False
         self.is_linked = False
         self.pushpunish = {}
-        if self.tgt in self.vip_dic:
-            for color in self.vip_dic[self.tgt]:
-                self.pushpunish[color] = self.vip_dic[self.tgt][color]
+        try:
+            self.regen = int(self.regen)
+        except:
+            self.regen = "False"
+        try:
+            self.regen_amount = int(self.regen_amount)
+        except:
+            self.regen_amount = 1
         
     def getpacket(self, data, operation):
         '''
@@ -1219,51 +1301,69 @@ class BilibiliChat(SubMonitor):
         pushcolor_vipdic = getpushcolordic(chat["chat_userid"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-
+        
         if pushcolor_dic:
-            # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
-            for color in self.pushpunish:
-                if color in pushcolor_dic and not color.count("vip"):
-                    if pushcolor_dic[color] <= self.pushpunish[color]:
-                        pushcolor_dic[color] -= self.pushpunish[color]
-
-                if self.simple_mode == "False":
-                    pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
-                        self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
-                        chat["chat_text"], chat["chat_type"], self.tgt)
-                    pushall(pushtext, pushcolor_dic, self.push_list)
-                    printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-                    writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-                else:
-                    self.pushcount += 1
-                    self.pushtext_old += chat["chat_text"]
-                    for color in pushcolor_dic:
-                        if color in self.pushcolor_dic_old:
-                            if self.pushcolor_dic_old[color] < pushcolor_dic[color]:
-                                self.pushcolor_dic_old[color] = pushcolor_dic[color]
-                        else:
+            pushcolor_dic = self.punish(pushcolor_dic)
+            
+            if self.simple_mode == "False":
+                pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
+                    self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
+                    chat["chat_text"], chat["chat_type"], self.tgt)
+                pushall(pushtext, pushcolor_dic, self.push_list)
+                printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            else:
+                self.pushcount += 1
+                self.pushtext_old += chat["chat_text"]
+                for color in pushcolor_dic:
+                    if color in self.pushcolor_dic_old:
+                        if self.pushcolor_dic_old[color] < pushcolor_dic[color]:
                             self.pushcolor_dic_old[color] = pushcolor_dic[color]
-
-                    if self.pushcount % self.simple_mode == 0:
-                        pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_list)
-                        printlog(
-                            '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                        writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (
-                            self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                        self.pushtext_old = ""
-                        # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
-                        self.pushcolor_dic_old = {}
                     else:
-                        self.pushtext_old += "\n"
+                        self.pushcolor_dic_old[color] = pushcolor_dic[color]
 
-        # 更新pushpunish
+                if self.pushcount % self.simple_mode == 0:
+                    pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_list)
+                    printlog(
+                        '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                    writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (
+                        self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+                    self.pushtext_old = ""
+                    # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
+                    self.pushcolor_dic_old = {}
+                else:
+                    self.pushtext_old += "\n"
+    
+    def punish(self, pushcolor_dic):
+        if self.regen != "False":
+            time_now = round(time.time())
+            regen_amt = int((time_now - self.regen_time) / self.regen) * self.regen_amount
+            if regen_amt:
+                self.regen_time = time_now
+                for color in list(self.pushpunish):
+                    if self.pushpunish[color] > regen_amt:
+                        print(color, self.pushpunish[color], regen_amt)
+                        self.pushpunish[color] -= regen_amt
+                    else:
+                        self.pushpunish.pop(color)
+        
+        if self.tgt in self.vip_dic:
+            for color in self.vip_dic[self.tgt]:
+                if color in pushcolor_dic and not color.count("vip"):
+                    pushcolor_dic[color] -= self.vip_dic[self.tgt][color]
+        
+        for color in self.pushpunish:
+            if color in pushcolor_dic and not color.count("vip"):
+                pushcolor_dic[color] -= self.pushpunish[color]
+        
         for color in pushcolor_dic:
             if pushcolor_dic[color] > 0 and not color.count("vip"):
                 if color in self.pushpunish:
                     self.pushpunish[color] += 1
                 else:
                     self.pushpunish[color] = 1
-
+        return pushcolor_dic
+    
     def stop(self):
         self.stop_now = True
         self.ws.close()
