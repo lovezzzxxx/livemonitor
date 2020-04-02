@@ -149,7 +149,7 @@ class Monitor(SubMonitor):
             self.submonitor_threads[monitor_name].stop()
 
 
-# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", no_chat="True"/"False", status_push="等待|开始|结束|上传|删除", regen="False", regen_amount="1"
+# vip=tgt, word=title+description, standby_chat="True"/"False", standby_chat_onstart="True"/"False", no_chat="True"/"False", status_push="等待|开始|结束|上传|删除", regen="False"/"间隔秒数", regen_amount="1"/"恢复数量"
 class YoutubeLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -702,7 +702,7 @@ class TwitterSearch(SubMonitor):
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, "no_chat"="True"/"False", "status_push" = "开始|结束", regen="False", regen_amount="1"
+# vip=tgt, "no_chat"="True"/"False", "status_push" = "开始|结束", regen="False"/"间隔秒数", regen_amount="1"/"恢复数量"
 class TwitcastLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -987,7 +987,7 @@ class FanboxPost(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False", "status_push" = "开始|结束", regen="False", regen_amount="1"
+# vip=tgt, "offline_chat"="True"/"False", "simple_mode"="True"/"False"/"合并数量", "no_chat"="True"/"False", "status_push" = "开始|结束", regen="False"/"间隔秒数", regen_amount="1"/"恢复数量"
 class BilibiliLive(Monitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
