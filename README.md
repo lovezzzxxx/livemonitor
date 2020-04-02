@@ -102,7 +102,7 @@ TwitcastLive|监视twitcast直播|同上|target|标题|可留空|"no_chat"，"st
 TwitcastChat|监视twitcast直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由TwitcastLive监视器创建 无需在配置文件中指定
 FanboxUser|监视fanbox用户基本信息|同上|target||可留空|||
 FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，可留空|||
-BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"，"simple_mode"，"no_chat"，"status_push"，"regen"，"regen_amount"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 如果为数字则会将相应数量的弹幕整合推送 默认为"False" 可选"合并数量"，no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"开始\|结束"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
+BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"，"simple_mode"，"no_chat"，"status_push"，"regen"，"regen_amount"|offline_chat为是否监测离线直播间的弹幕 默认为"False" 可选"True"，simple_mode为只推送弹幕文字 如果为数字则会将相应数量的弹幕整合推送 默认为"False" 可选"合并数量"，no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"开始\|结束"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
 BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由BilibiliLive监视器创建 无需在配置文件中指定，无法直接指定proxy
 
 ### 常见故障
@@ -116,7 +116,6 @@ BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、
 ```
 
 # 想做的事
-  * 添加推送惩罚恢复机制
   * 添加bilibili动态监视器
   * 添加steam、LOL、apex等监视器
   * 加入图片与视频推送
