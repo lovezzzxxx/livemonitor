@@ -91,18 +91,18 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
 __子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
 :---|:---|:---|:---|:---|:---|:---|:---
 Monitor|作为基本监视器管理子监视器组|interval|||||
-YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_list|target|标题、简介|可留空|"standby_chat"="True"/"False"，"standby_chat_onstart"="True"/"False"，"no_chat"="True"/"False"，"status_push" = "等待\|开始\|结束\|上传\|删除"|standby_chat为是否检测待机直播间的弹幕 默认为"False"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False"，no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"等待|开始|结束|上传|删除"
+YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_list|target|标题、简介|可留空|"standby_chat"，"standby_chat_onstart"，"no_chat"，"status_push"，"regen"，"regen_amount"|standby_chat为是否检测待机直播间的弹幕 默认为"False" 可选"True"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False" 可选"True"，no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"等待\|开始\|结束\|上传\|删除"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
 YoutubeChat|监视youtube直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由YoutubeLive监视器创建 无需在配置文件中指定
 YoutubeCom|监视youtube社区帖子|同上|target|帖子文字|付费帖子，可留空|||
 YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包括superchat）|用户通知，必要|||
-TwitterUser|监视twitter用户基本信息|同上|target||必要|"no_increase"="True"/"False"|no_increase为是否不推送推文和媒体数量的增加 默认为"False"
+TwitterUser|监视twitter用户基本信息|同上|target||必要|"no_increase"|no_increase为是否不推送推文和媒体数量的增加 默认为"False" 可选"True"
 TwitterTweet|监视twitter用户的推文|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|||
-TwitterSearch|监视推特搜索结果|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|"only_live"="True"/"False", "only_liveorvideo"="True"/"False"|only_live为是否只推送有链接指向正在进行的youtube直播的推文 默认为"False"，only_liveorvideo为是否只推送有链接指向youtube直播或视频的推文 默认为"False"，当两者同时开启时则only_liveorvideo生效
-TwitcastLive|监视twitcast直播|同上|target|标题|可留空|"no_chat"="True"/"False"，"status_push" = "开始\|结束"|no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"开始|结束"
+TwitterSearch|监视推特搜索结果|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|"only_live", "only_liveorvideo"|only_live为是否只推送有链接指向正在进行的youtube直播的推文 默认为"False" 可选"True"，only_liveorvideo为是否只推送有链接指向youtube直播或视频的推文 默认为"False" 可选"True"，当两者同时开启时则only_liveorvideo生效
+TwitcastLive|监视twitcast直播|同上|target|标题|可留空|"no_chat"，"status_push"，"regen"，"regen_amount"|no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"开始|结束"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
 TwitcastChat|监视twitcast直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由TwitcastLive监视器创建 无需在配置文件中指定
 FanboxUser|监视fanbox用户基本信息|同上|target||可留空|||
 FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，可留空|||
-BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"="True"/"False"，"simple_mode"="True"/"False"/"合并弹幕数量"，"no_chat"="True"/"False"，"status_push" = "开始\|结束"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 如果为数字则会将相应数量的弹幕整合推送 默认为"False"，no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"开始|结束"
+BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"，"simple_mode"，"no_chat"，"status_push"，"regen"，"regen_amount"|offline_chat为是否监测离线直播间的弹幕 默认为"False"，simple_mode为只推送弹幕文字 如果为数字则会将相应数量的弹幕整合推送 默认为"False"，no_chat为是否不记录弹幕 默认为"False"，status_push为推送相应类型的更新 默认为"开始|结束"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
 BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由BilibiliLive监视器创建 无需在配置文件中指定，无法直接指定proxy
 
 ### 常见故障
