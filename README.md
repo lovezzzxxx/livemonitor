@@ -114,6 +114,8 @@ BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、
 ```
 "cookies"： {"_ga":"12345678","_gid":"12345678","_twitter_sess":"12345678","ads_prefs":""12345678"","auth_token":"12345678","csrf_same_site":"12345678","csrf_same_site_set":"12345678","ct0":"12345678","dnt":"12345678","gt":"12345678","guest_id":"12345678","kdt":"12345678","lang":"12345678","personalization_id":""12345678"","remember_checked_on":"12345678","rweb_optin":"12345678","twid":"u=12345678"},
 ```
+##### 更新后无法推送
+检查配置文件中的push_list项是否已调整为新的格式，删除原来的pause.json文件
 
 # 想做的事
   * 添加bilibili动态监视器
