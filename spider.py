@@ -1429,7 +1429,7 @@ def getyoutubevideostatus(video_id, proxy):
                     video_status = "删除"
                 elif response.json()["status"] == "ok":
                     video_status = "开始"
-                elif "displayEndscreen" in response.json()["liveStreamability"]["liveStreamabilityRenderer"]:
+                elif "liveStreamability" not in response.json() or "displayEndscreen" in response.json()["liveStreamability"]["liveStreamabilityRenderer"]:
                     video_status = "结束"
                 else:
                     video_status = "等待"
