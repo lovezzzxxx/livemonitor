@@ -805,6 +805,7 @@ class TwitcastChat(SubMonitor):
 
         self.chat_id_old = 0
         self.pushpunish = {}
+        self.regen_time = 0
         try:
             getattr(self, "tgt_channel")
         except:
@@ -1132,6 +1133,7 @@ class BilibiliChat(SubMonitor):
         self.ws = False
         self.is_linked = False
         self.pushpunish = {}
+        self.regen_time = 0
         try:
             self.regen = int(self.regen)
         except:
