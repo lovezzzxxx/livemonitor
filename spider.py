@@ -1401,6 +1401,7 @@ class LolUser(SubMonitor):
             os.mkdir('./log/%s' % self.__class__.__name__)
 
         self.is_firstrun = True
+        self.user_id = False
         self.userdata_dic = {}
         self.lastgameid = 0
         try:
@@ -1408,45 +1409,64 @@ class LolUser(SubMonitor):
         except:
             self.tgt_region = "jp"
 
-    def run(self):
+    def run(self):    
         while not self.stop_now:
-            # 获取用户信息
-            user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
-            if isinstance(user_datadic_new, dict):
-                pushtext_body = ""
-                if self.is_firstrun:
-                    self.userdata_dic = user_datadic_new
-                    self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
-                    writelog(self.logpath, '[Info] "%s" getloluser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
-                    self.is_firstrun = False
+            # 获取用户id
+            if not self.user_id:
+                user_id = getloluserid(self.tgt, self.tgt_region, self.proxy)
+                if isinstance(user_id, int):
+                    self.user_id = user_id
+                    writelog(self.logpath, '[Success] "%s" getloluserid %s' % (self.name, self.tgt))
                 else:
-                    for key in user_datadic_new:
-                        # 不可能会增加新键所以不做判断
-                        if key == 'user_gamedic':
-                            for gameid in user_datadic_new['user_gamedic']:
-                                if gameid > self.lastgameid:
-                                    pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s\n网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
-                                        self.__class__.__name__, self.tgt_name,
-                                        user_datadic_new['user_gamedic'][gameid]['game_result'],
-                                        user_datadic_new['user_gamedic'][gameid]['game_kda'],
-                                        user_datadic_new['user_gamedic'][gameid]['game_time'], self.tgt_region,
-                                        self.tgt)
-                                    self.push(pushtext)
+                    printlog('[Error] "%s" getloluserid %s' % (self.name, self.tgt))
+                    writelog(self.logpath, '[Error] "%s" getloluserid %s' % (self.name, self.tgt))
+                    time.sleep(5)
+                    continue
+            
+            # 获取用户信息
+            if self.user_id:
+                renew = renewloluser(self.user_id, self.tgt_region, self.proxy)
+                if renew:
+                    writelog(self.logpath, '[Success] "%s" renewloluser %s' % (self.name, self.tgt))
+                    user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
+                    if isinstance(user_datadic_new, dict):
+                        pushtext_body = ""
+                        if self.is_firstrun:
+                            self.userdata_dic = user_datadic_new
                             self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+                            writelog(self.logpath, '[Info] "%s" getloluser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                            self.is_firstrun = False
+                        else:
+                            for key in user_datadic_new:
+                                # 不可能会增加新键所以不做判断
+                                if key == 'user_gamedic':
+                                    for gameid in user_datadic_new['user_gamedic']:
+                                        if gameid > self.lastgameid:
+                                            pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s\n网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
+                                                self.__class__.__name__, self.tgt_name,
+                                                user_datadic_new['user_gamedic'][gameid]['game_result'],
+                                                user_datadic_new['user_gamedic'][gameid]['game_kda'],
+                                                user_datadic_new['user_gamedic'][gameid]['game_time'], self.tgt_region,
+                                                self.tgt)
+                                            self.push(pushtext)
+                                    self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
 
-                        elif self.userdata_dic[key] != user_datadic_new[key]:
-                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
-                                key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
-                            self.userdata_dic[key] = user_datadic_new[key]
-                writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
+                                elif self.userdata_dic[key] != user_datadic_new[key]:
+                                    pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
+                                        key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
+                                    self.userdata_dic[key] = user_datadic_new[key]
+                        writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
 
-                if pushtext_body:
-                    pushtext = "【%s %s 数据改变】\n%s网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
-                        self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt_region, self.tgt)
-                    self.push(pushtext)
-            else:
-                printlog('[Error] "%s" getloluser %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getloluser %s' % (self.name, self.tgt))
+                        if pushtext_body:
+                            pushtext = "【%s %s 数据改变】\n%s网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
+                                self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt_region, self.tgt)
+                            self.push(pushtext)
+                    else:
+                        printlog('[Error] "%s" getloluser %s' % (self.name, self.tgt))
+                        writelog(self.logpath, '[Error] "%s" getloluser %s' % (self.name, self.tgt))
+                else:
+                    printlog('[Error] "%s" renewloluser %s' % (self.name, self.tgt))
+                    writelog(self.logpath, '[Error] "%s" renewloluser %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
     def push(self, pushtext):
@@ -2172,6 +2192,20 @@ def getbilibilichathostlist(proxy):
     return hostlist
 
 
+def getloluserid(user_name, user_region, proxy):
+    try:
+        response = requests.get("https://%s.op.gg/summoner/l=en_US&userName=%s" % (user_region, user_name),
+                                timeout=(3, 7), proxies=proxy)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'lxml')
+            user_id = int(soup.find(id="SummonerRefreshButton").get('onclick').split("'")[1])
+            return user_id
+        else:
+            return False
+    except:
+        return False
+
+
 def getloluser(user_name, user_region, proxy):
     try:
         userdata_dic = {}
@@ -2183,19 +2217,29 @@ def getloluser(user_name, user_region, proxy):
                 userdata_dic["user_status"] = 'not_in_game'
             else:
                 userdata_dic["user_status"] = 'in_game'
-
+            
             userdata_dic["user_gamedic"] = {}
             for gameitem in soup.find_all(class_='GameItemWrap'):
-                user_id = int(gameitem.div.get('data-summoner-id'))
                 game_id = int(gameitem.div.get('data-game-id'))
                 game_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(gameitem.div.get('data-game-time'))))
                 game_result = gameitem.div.get('data-game-result')
                 game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
                                          gameitem.find(class_='Assist').text)
-                userdata_dic["user_gamedic"][game_id] = {"user_id": user_id, "game_time": game_time,
-                                                         "game_result": game_result, "game_kda": game_kda}
-
+                userdata_dic["user_gamedic"][game_id] = {"game_time": game_time, "game_result": game_result, "game_kda": game_kda}
             return userdata_dic
+        else:
+            return False
+    except:
+        return False
+
+
+def renewloluser(user_id, user_region, proxy):
+    try:
+        headers = {"Content-Type": "application/x-www-form-urlencoded; charset=UTF-8", "X-Requested-With": "XMLHttpRequest"}
+        data = "summonerId=%s" % user_id
+        response = requests.post("https://%s.op.gg/summoner/ajax/renew.json/" % user_region, headers=headers, data=data, timeout=(3, 7), proxies=proxy)
+        if response.status_code == 200:
+            return True
         else:
             return False
     except:
