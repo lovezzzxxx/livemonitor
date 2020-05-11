@@ -4,7 +4,8 @@
 		"Youtube": {"class": "Monitor", "target": "youtube", "target_name": "youtube", "config_name": "youtube"},
 		"Twitter": {"class": "Monitor", "target": "twitter", "target_name": "twitter", "config_name": "twitter"},
 		"Fanbox": {"class": "Monitor", "target": "fanbox", "target_name": "fanbox", "config_name": "fanbox"},
-		"Bilibili": {"class": "Monitor", "target": "bilibili", "target_name": "bilibili", "config_name": "bilibili"}
+		"Bilibili": {"class": "Monitor", "target": "bilibili", "target_name": "bilibili", "config_name": "bilibili"},
+		"Other": {"class": "Monitor", "target": "other", "target_name": "other", "config_name": "other"}
 	},
 	"youtube": {
 		"interval": 180,
@@ -154,6 +155,31 @@
 				"【": {"trans_vip": 4},
 				"】": {"trans_vip": 4}
 			},
+			"cookies": {},
+			"proxy": {},
+			"push_list": [
+				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1, "trans_vip": 4}},
+				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4, "trans_vip": 4}},
+				{"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
+				{"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}},
+				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1, "trans_vip": 4}},
+				{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1, "trans_vip": 4}}
+			]
+		}
+	},
+	"other": {
+		"interval": 180,
+		"submonitor_dic": {
+			"LolUser 神楽めあ": {"class": "LolUser", "target": "かぐらめあっ", "target_name": "神楽めあ", "config_name": "other_config", "interval": 60},
+			"SteamUser 神楽めあ": {"class": "SteamUser", "target": "76561198983904734", "target_name": "神楽めあ", "config_name": "other_config", "interval": 60}
+		},
+		"other_config": {
+			"interval": 180,
+			"vip_dic": {
+				"かぐらめあっ": {"mea": 10},
+				"76561198983904734": {"mea": 10}
+			},
+			"word_dic": {},
 			"cookies": {},
 			"proxy": {},
 			"push_list": [
