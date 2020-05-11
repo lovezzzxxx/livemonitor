@@ -170,7 +170,7 @@
 	"other": {
 		"interval": 180,
 		"submonitor_dic": {
-			"LolUser 神楽めあ": {"class": "LolUser", "target": "かぐらめあっ", "target_name": "神楽めあ", "config_name": "other_config", "interval": 60},
+			"LolUser 神楽めあ": {"class": "LolUser", "target": "かぐらめあっ", "target_name": "神楽めあ", "config_name": "other_config"},
 			"SteamUser 神楽めあ": {"class": "SteamUser", "target": "76561198983904734", "target_name": "神楽めあ", "config_name": "other_config", "interval": 60}
 		},
 		"other_config": {
