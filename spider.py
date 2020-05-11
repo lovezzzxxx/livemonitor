@@ -195,7 +195,7 @@ class YoutubeLive(Monitor):
             getattr(self, "regen_amount")
         except:
             self.regen_amount = 1
-        
+
     def run(self):
         while not self.stop_now:
             # 更新视频列表
@@ -204,8 +204,11 @@ class YoutubeLive(Monitor):
                 for video_id in videodic_new:
                     if video_id not in self.videodic:
                         self.videodic[video_id] = videodic_new[video_id]
-                        if not self.is_firstrun or videodic_new[video_id]["video_status"] == "等待" and self.standby_chat_onstart == "True" or videodic_new[video_id]["video_status"] == "开始":
+                        if not self.is_firstrun or videodic_new[video_id][
+                            "video_status"] == "等待" and self.standby_chat_onstart == "True" or videodic_new[video_id][
+                            "video_status"] == "开始":
                             self.push(video_id)
+                writelog(self.logpath, '[Info] "%s" getyoutubevideodic %s firstresult\n%s' % (self.name, self.tgt, videodic_new))
                 self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
             else:
@@ -247,13 +250,13 @@ class YoutubeLive(Monitor):
             # 进行推送
             if pushcolor_dic:
                 pushtext = "【%s %s %s%s】\n标题：%s\n时间：%s\n网址：https://www.youtube.com/watch?v=%s" % (
-                            self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_type"],
-                            self.videodic[video_id]["video_status"], self.videodic[video_id]["video_title"],
-                            waittime(self.videodic[video_id]["video_timestamp"]), video_id)
+                    self.__class__.__name__, self.tgt_name, self.videodic[video_id]["video_type"],
+                    self.videodic[video_id]["video_status"], self.videodic[video_id]["video_title"],
+                    waittime(self.videodic[video_id]["video_timestamp"]), video_id)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath,
-                             '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+                         '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
         if self.no_chat != "True":
             # 开始记录弹幕
@@ -262,7 +265,8 @@ class YoutubeLive(Monitor):
                 monitor_name = "%s - YoutubeChat %s" % (self.name, video_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "YoutubeChat", video_id, self.tgt_name,
-                                                     "youtubechat_config", tgt_channel=self.tgt, interval=2, regen=self.regen, regen_amount=self.regen_amount)
+                                                     "youtubechat_config", tgt_channel=self.tgt, interval=2,
+                                                     regen=self.regen, regen_amount=self.regen_amount)
                     self.checksubmonitor()
                     printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                     writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -297,14 +301,14 @@ class YoutubeChat(SubMonitor):
         except:
             self.tgt_channel = ""
         try:
-            self.regen = int(self.regen)
+            self.regen = self.regen
         except:
             self.regen = "False"
         try:
-            self.regen_amount = int(self.regen_amount)
+            self.regen_amount = self.regen_amount
         except:
             self.regen_amount = 1
-            
+
     def run(self):
         while not self.stop_now:
             # 获取continuation
@@ -357,12 +361,12 @@ class YoutubeChat(SubMonitor):
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
-    
+
     def punish(self, pushcolor_dic):
         # 推送惩罚恢复
         if self.regen != "False":
             time_now = round(time.time())
-            regen_amt = int((time_now - self.regen_time) / self.regen) * self.regen_amount
+            regen_amt = int((time_now - self.regen_time) / int(self.regen)) * int(self.regen_amount)
             if regen_amt:
                 self.regen_time = time_now
                 for color in list(self.pushpunish):
@@ -371,18 +375,18 @@ class YoutubeChat(SubMonitor):
                         self.pushpunish[color] -= regen_amt
                     else:
                         self.pushpunish.pop(color)
-        
+
         # 去除来源频道的相关权重
         if self.tgt_channel in self.vip_dic:
             for color in self.vip_dic[self.tgt_channel]:
                 if color in pushcolor_dic and not color.count("vip"):
                     pushcolor_dic[color] -= self.vip_dic[self.tgt_channel][color]
-        
+
         # 只对pushcolor_dic存在的键进行修改，不同于addpushcolordic
         for color in self.pushpunish:
             if color in pushcolor_dic and not color.count("vip"):
                 pushcolor_dic[color] -= self.pushpunish[color]
-        
+
         # 更新pushpunish
         for color in pushcolor_dic:
             if pushcolor_dic[color] > 0 and not color.count("vip"):
@@ -416,6 +420,7 @@ class YoutubeCom(SubMonitor):
                         self.postlist.append(post_id)
                         if not self.is_firstrun:
                             self.push(post_id, postdic_new)
+                writelog(self.logpath, '[Info] "%s" getyoutubepostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
                 writelog(self.logpath, '[Success] "%s" getyoutubepostdic %s' % (self.name, self.tgt))
                 self.is_firstrun = False
             else:
@@ -472,6 +477,7 @@ class YoutubeNote(SubMonitor):
                     if notedic_new:
                         if self.is_firstrun:
                             self.note_id_old = sorted(notedic_new, reverse=True)[0]
+                            writelog(self.logpath, '[Info] "%s" getyoutubenotedic %s firstresult\n%s' % (self.name, self.tgt, notedic_new))
                             self.is_firstrun = False
                         else:
                             for note_id in notedic_new:
@@ -522,6 +528,7 @@ class TwitterUser(SubMonitor):
                 pushtext_body = ""
                 if self.is_firstrun:
                     self.userdata_dic = user_datadic_new
+                    writelog(self.logpath, '[Info] "%s" gettwitteruser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     for key in user_datadic_new:
@@ -549,7 +556,7 @@ class TwitterUser(SubMonitor):
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
-            pushtext = "【%s %s 数据改变】\n%s\n网址：https://twitter.com/%s" % (
+            pushtext = "【%s %s 数据改变】\n%s网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -591,6 +598,7 @@ class TwitterTweet(SubMonitor):
                     if tweetdic_new:
                         if self.is_firstrun:
                             self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
+                            writelog(self.logpath, '[Info] "%s" gettwittertweetdic %s firstresult\n%s' % (self.name, self.tgt, tweetdic_new))
                             self.is_firstrun = False
                         else:
                             for tweet_id in tweetdic_new:
@@ -651,6 +659,7 @@ class TwitterSearch(SubMonitor):
                 if tweetdic_new:
                     if self.is_firstrun:
                         self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
+                        writelog(self.logpath, '[Info] "%s" gettwittersearchdic %s firstresult\n%s' % (self.name, self.tgt, tweetdic_new))
                         self.is_firstrun = False
                     else:
                         for tweet_id in tweetdic_new:
@@ -714,7 +723,7 @@ class TwitcastLive(Monitor):
         # 重新设置submonitorconfig用于启动子线程，并添加频道id信息到子进程使用的cfg中
         self.submonitorconfig_setname("twitcastchat_submonitor_cfg")
         self.submonitorconfig_addconfig("twitcastchat_config", self.cfg)
-        
+
         self.livedic = {"": {"live_status": "结束", "live_title": ""}}
         try:
             getattr(self, "no_chat")
@@ -766,7 +775,8 @@ class TwitcastLive(Monitor):
 
             if pushcolor_dic:
                 pushtext = "【%s %s 直播%s】\n标题：%s\n网址：https://twitcasting.tv/%s" % (
-                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_status"], self.livedic[live_id]["live_title"], self.tgt)
+                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_status"],
+                    self.livedic[live_id]["live_title"], self.tgt)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -777,7 +787,8 @@ class TwitcastLive(Monitor):
                 monitor_name = "%s - TwitcastChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "TwitcastChat", live_id, self.tgt_name,
-                                                     "twitcastchat_config", tgt_channel=self.tgt, interval=2, regen=self.regen, regen_amount=self.regen_amount)
+                                                     "twitcastchat_config", tgt_channel=self.tgt, interval=2,
+                                                     regen=self.regen, regen_amount=self.regen_amount)
                     self.checksubmonitor()
                     printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                     writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -811,11 +822,11 @@ class TwitcastChat(SubMonitor):
         except:
             self.tgt_channel = ""
         try:
-            self.regen = int(self.regen)
+            self.regen = self.regen
         except:
             self.regen = "False"
         try:
-            self.regen_amount = int(self.regen_amount)
+            self.regen_amount = self.regen_amount
         except:
             self.regen_amount = 1
 
@@ -855,7 +866,7 @@ class TwitcastChat(SubMonitor):
 
         if pushcolor_dic:
             pushcolor_dic = self.punish(pushcolor_dic)
-            
+
             pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n网址：https://twitcasting.tv/%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_name"], chat["chat_screenname"], chat["chat_text"],
                 self.tgt_channel)
@@ -866,7 +877,7 @@ class TwitcastChat(SubMonitor):
     def punish(self, pushcolor_dic):
         if self.regen != "False":
             time_now = round(time.time())
-            regen_amt = int((time_now - self.regen_time) / self.regen) * self.regen_amount
+            regen_amt = int((time_now - self.regen_time) / int(self.regen)) * int(self.regen_amount)
             if regen_amt:
                 self.regen_time = time_now
                 for color in list(self.pushpunish):
@@ -875,16 +886,16 @@ class TwitcastChat(SubMonitor):
                         self.pushpunish[color] -= regen_amt
                     else:
                         self.pushpunish.pop(color)
-        
+
         if self.tgt_channel in self.vip_dic:
             for color in self.vip_dic[self.tgt_channel]:
                 if color in pushcolor_dic and not color.count("vip"):
                     pushcolor_dic[color] -= self.vip_dic[self.tgt_channel][color]
-        
+
         for color in self.pushpunish:
             if color in pushcolor_dic and not color.count("vip"):
                 pushcolor_dic[color] -= self.pushpunish[color]
-        
+
         for color in pushcolor_dic:
             if pushcolor_dic[color] > 0 and not color.count("vip"):
                 if color in self.pushpunish:
@@ -914,13 +925,14 @@ class FanboxUser(SubMonitor):
                 pushtext_body = ""
                 if self.is_firstrun:
                     self.userdata_dic = user_datadic_new
+                    writelog(self.logpath, '[Info] "%s" getfanboxuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     for key in user_datadic_new:
                         # 不可能会增加新键所以不做判断
                         if self.userdata_dic[key] != user_datadic_new[key]:
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
-                                key, str(self.userdata_dic[key])[0:1300], str(user_datadic_new[key])[0:1300])
+                                key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
                 writelog(self.logpath, '[Success] "%s" getfanboxuser %s' % (self.name, self.tgt))
 
@@ -936,7 +948,7 @@ class FanboxUser(SubMonitor):
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
-            pushtext = "【%s %s 数据改变】\n%s\n网址：https://twitter.com/%s" % (
+            pushtext = "【%s %s 数据改变】\n%s网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -965,6 +977,7 @@ class FanboxPost(SubMonitor):
                         self.postlist.append(post_id)
                         if not self.is_firstrun:
                             self.push(post_id, postdic_new)
+                writelog(self.logpath, '[Info] "%s" getfanboxpostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
                 writelog(self.logpath, '[Success] "%s" getfanboxpostdic %s' % (self.name, self.tgt))
                 self.is_firstrun = False
             else:
@@ -979,7 +992,8 @@ class FanboxPost(SubMonitor):
 
         if pushcolor_dic:
             pushtext = "【%s %s 社区帖子】\n标题：%s\n内容：%s\n类型：%s\n档位：%s\n时间：%s (GMT)\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
-                self.__class__.__name__, self.tgt_name, postdic[post_id]["post_title"], postdic[post_id]["post_text"][0:2500],
+                self.__class__.__name__, self.tgt_name, postdic[post_id]["post_title"],
+                postdic[post_id]["post_text"][0:2500],
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
                 time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(postdic[post_id]["post_publishtimestamp"])), self.tgt,
                 post_id)
@@ -1026,7 +1040,7 @@ class BilibiliLive(Monitor):
             getattr(self, "regen_amount")
         except:
             self.regen_amount = 1
-        
+
     def run(self):
         if self.offline_chat == "True" and self.no_chat != "True":
             monitor_name = "%s - BilibiliChat %s" % (self.name, 'offline_chat')
@@ -1068,7 +1082,8 @@ class BilibiliLive(Monitor):
 
             if pushcolor_dic:
                 pushtext = "【%s %s 直播%s】\n标题：%s\n网址：https://live.bilibili.com/%s" % (
-                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_status"], self.livedic[live_id]["live_title"], self.tgt)
+                    self.__class__.__name__, self.tgt_name, self.livedic[live_id]["live_status"],
+                    self.livedic[live_id]["live_title"], self.tgt)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1079,7 +1094,8 @@ class BilibiliLive(Monitor):
                 monitor_name = "%s - BilibiliChat %s" % (self.name, live_id)
                 if monitor_name not in getattr(self, self.submonitor_config_name)["submonitor_dic"]:
                     self.submonitorconfig_addmonitor(monitor_name, "BilibiliChat", self.tgt, self.tgt_name,
-                                                     "bilibilichat_config", simple_mode=self.simple_mode, regen=self.regen, regen_amount=self.regen_amount)
+                                                     "bilibilichat_config", simple_mode=self.simple_mode,
+                                                     regen=self.regen, regen_amount=self.regen_amount)
                     self.checksubmonitor()
                 printlog('[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
                 writelog(self.logpath, '[Info] "%s" startsubmonitor %s' % (self.name, monitor_name))
@@ -1127,7 +1143,7 @@ class BilibiliChat(SubMonitor):
             if len(proxysplit) == 2:
                 self.proxyhost = proxysplit[0]
                 self.proxyport = proxysplit[1]
-        
+
         self.hostlist = []
         self.hostcount = 1
         self.ws = False
@@ -1135,14 +1151,14 @@ class BilibiliChat(SubMonitor):
         self.pushpunish = {}
         self.regen_time = 0
         try:
-            self.regen = int(self.regen)
+            self.regen = self.regen
         except:
             self.regen = "False"
         try:
-            self.regen_amount = int(self.regen_amount)
+            self.regen_amount = self.regen_amount
         except:
             self.regen_amount = 1
-        
+
     def getpacket(self, data, operation):
         '''
         packet_length, header_length, protocol_version, operation, sequence_id
@@ -1153,36 +1169,36 @@ class BilibiliChat(SubMonitor):
         CHANGE_ROOM_REPLY = 13, REGISTER = 14, REGISTER_REPLY = 15, UNREGISTER = 16, UNREGISTER_REPLY = 17
         '''
         body = json.dumps(data).encode('utf-8')
-        header = struct.pack('>I2H2I', 16+len(body), 16, 1, operation, 1)
+        header = struct.pack('>I2H2I', 16 + len(body), 16, 1, operation, 1)
         return header + body
-     
+
     def prasepacket(self, packet):
         try:
             packet = zlib.decompress(packet[16:])
         except:
             pass
-    
+
         packetlist = []
         offset = 0
         while offset < len(packet):
             try:
-                header = packet[offset:offset+16]
+                header = packet[offset:offset + 16]
                 headertuple = struct.Struct('>I2H2I').unpack_from(header)
                 packet_length = headertuple[0]
                 operation = headertuple[3]
-                
-                body = packet[offset+16:offset+packet_length]
+
+                body = packet[offset + 16:offset + packet_length]
                 try:
                     data = json.loads(body.decode('utf-8'))
                     packetlist.append({"data": data, "operation": operation})
                 except:
                     packetlist.append({"data": body, "operation": operation})
-                
+
                 offset += packet_length
             except:
                 continue
         return packetlist
-            
+
     def heartbeat(self):
         while not self.stop_now:
             if self.is_linked:
@@ -1190,7 +1206,7 @@ class BilibiliChat(SubMonitor):
                 time.sleep(30)
             else:
                 time.sleep(1)
-    
+
     def parsedanmu(self, chat_json):
         try:
             chat_cmd = chat_json['cmd']
@@ -1228,47 +1244,50 @@ class BilibiliChat(SubMonitor):
                 self.push(chat)
         except:
             pass
-    
+
     def on_open(self):
         # 未登录uid则为0，注意int和str类有区别，protover为1则prasepacket中无需用zlib解压
         auth_data = {
-            'uid': 0, 
+            'uid': 0,
             'roomid': int(self.tgt),
             'protover': 2,
             'platform': 'web',
             'clientver': '1.10.3',
             'type': 2,
-            'key': requests.get('https://api.live.bilibili.com/room/v1/Danmu/getConf', proxies=self.proxy).json()['data']['token']
+            'key':
+                requests.get('https://api.live.bilibili.com/room/v1/Danmu/getConf', proxies=self.proxy).json()['data'][
+                    'token']
         }
         self.ws.send(self.getpacket(auth_data, 7))
         writelog(self.logpath, '[Start] "%s" connect %s' % (self.name, self.tgt))
-    
+
     def on_message(self, message):
         packetlist = self.prasepacket(message)
-        
+
         for packet in packetlist:
             if packet["operation"] == 8:
                 self.is_linked = True
                 writelog(self.logpath, '[Success] "%s" connected %s' % (self.name, self.tgt))
-            
+
             if packet["operation"] == 5:
                 if isinstance(packet["data"], dict):
                     self.parsedanmu(packet["data"])
-    
+
     def on_error(self, error):
         writelog(self.logpath, '[Error] "%s" error %s: %s' % (self.name, self.tgt, error))
-    
+
     def on_close(self):
         # 推送剩余的弹幕
         if self.simple_mode != "False":
             if self.pushtext_old:
                 pushall(self.pushtext_old, self.pushcolor_dic_old, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
-                
+                writelog(self.logpath,
+                         '[Info] "%s" pushall %s\n%s' % (self.name, str(self.pushcolor_dic_old), self.pushtext_old))
+
                 self.pushtext_old = ""
                 # self.pushtext_old = "【%s %s】\n" % (self.__class__.__name__, self.tgt_name)
-        
+
         self.is_linked = False
         writelog(self.logpath, '[Stop] "%s" disconnect %s' % (self.name, self.tgt))
 
@@ -1277,25 +1296,26 @@ class BilibiliChat(SubMonitor):
         heartbeat_thread = threading.Thread(target=self.heartbeat, args=())
         heartbeat_thread.Daemon = True
         heartbeat_thread.start()
-        
+
         while not self.stop_now:
             if self.hostcount < len(self.hostlist):
                 host = self.hostlist[self.hostcount]
                 self.hostcount += 1
-                
-                self.ws = websocket.WebSocketApp(host,on_open=self.on_open,on_message=self.on_message,on_error=self.on_error,on_close=self.on_close)
+
+                self.ws = websocket.WebSocketApp(host, on_open=self.on_open, on_message=self.on_message,
+                                                 on_error=self.on_error, on_close=self.on_close)
                 self.ws.run_forever(http_proxy_host=self.proxyhost, http_proxy_port=self.proxyport)
             else:
                 self.hostlist = getbilibilichathostlist(self.proxy)
                 self.hostcount = 0
-                
+
                 if self.hostlist:
                     writelog(self.logpath, '[Success] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
                 else:
                     time.sleep(5)
                     printlog('[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
                     writelog(self.logpath, '[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
-    
+
     def push(self, chat):
         writelog(self.logpath,
                  "%s(%s)\t(%s)%s" % (chat["chat_username"], chat["chat_userid"], chat["chat_type"], chat["chat_text"]))
@@ -1303,10 +1323,10 @@ class BilibiliChat(SubMonitor):
         pushcolor_vipdic = getpushcolordic(chat["chat_userid"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
-        
+
         if pushcolor_dic:
             pushcolor_dic = self.punish(pushcolor_dic)
-            
+
             if self.simple_mode == "False":
                 pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n网址：https://live.bilibili.com/%s" % (
                     self.__class__.__name__, self.tgt_name, chat["chat_username"], chat["chat_userid"],
@@ -1335,11 +1355,11 @@ class BilibiliChat(SubMonitor):
                     self.pushcolor_dic_old = {}
                 else:
                     self.pushtext_old += "\n"
-    
+
     def punish(self, pushcolor_dic):
         if self.regen != "False":
             time_now = round(time.time())
-            regen_amt = int((time_now - self.regen_time) / self.regen) * self.regen_amount
+            regen_amt = int((time_now - self.regen_time) / int(self.regen)) * int(self.regen_amount)
             if regen_amt:
                 self.regen_time = time_now
                 for color in list(self.pushpunish):
@@ -1348,16 +1368,16 @@ class BilibiliChat(SubMonitor):
                         self.pushpunish[color] -= regen_amt
                     else:
                         self.pushpunish.pop(color)
-        
+
         if self.tgt in self.vip_dic:
             for color in self.vip_dic[self.tgt]:
                 if color in pushcolor_dic and not color.count("vip"):
                     pushcolor_dic[color] -= self.vip_dic[self.tgt][color]
-        
+
         for color in self.pushpunish:
             if color in pushcolor_dic and not color.count("vip"):
                 pushcolor_dic[color] -= self.pushpunish[color]
-        
+
         for color in pushcolor_dic:
             if pushcolor_dic[color] > 0 and not color.count("vip"):
                 if color in self.pushpunish:
@@ -1365,10 +1385,130 @@ class BilibiliChat(SubMonitor):
                 else:
                     self.pushpunish[color] = 1
         return pushcolor_dic
-    
+
     def stop(self):
         self.stop_now = True
         self.ws.close()
+
+
+# vip=tgt
+class LolUser(SubMonitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s.txt' % (self.__class__.__name__, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+
+        self.is_firstrun = True
+        self.userdata_dic = {}
+        self.lastgameid = 0
+        try:
+            getattr(self, "tgt_region")
+        except:
+            self.tgt_region = "jp"
+
+    def run(self):
+        while not self.stop_now:
+            # 获取用户信息
+            user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
+            if isinstance(user_datadic_new, dict):
+                pushtext_body = ""
+                if self.is_firstrun:
+                    self.userdata_dic = user_datadic_new
+                    self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+                    writelog(self.logpath, '[Info] "%s" getloluser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                    self.is_firstrun = False
+                else:
+                    for key in user_datadic_new:
+                        # 不可能会增加新键所以不做判断
+                        if key == 'user_gamedic':
+                            for gameid in user_datadic_new['user_gamedic']:
+                                if int(gameid) > self.lastgameid:
+                                    pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s\n网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
+                                        self.__class__.__name__, self.tgt_name,
+                                        user_datadic_new['user_gamedic'][gameid]['game_result'],
+                                        user_datadic_new['user_gamedic'][gameid]['game_kda'],
+                                        user_datadic_new['user_gamedic'][gameid]['game_time'], self.tgt_region,
+                                        self.tgt)
+                                    self.push(pushtext)
+                            self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+
+                        elif self.userdata_dic[key] != user_datadic_new[key]:
+                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
+                                key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
+                            self.userdata_dic[key] = user_datadic_new[key]
+                writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
+
+                if pushtext_body:
+                    pushtext = "【%s %s 数据改变】\n%s网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
+                        self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt_region, self.tgt)
+                    self.push(pushtext)
+            else:
+                printlog('[Error] "%s" getloluser %s' % (self.name, self.tgt))
+                writelog(self.logpath, '[Error] "%s" getloluser %s' % (self.name, self.tgt))
+            time.sleep(self.interval)
+
+    def push(self, pushtext):
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+        pushcolor_dic = pushcolor_vipdic
+
+        if pushcolor_dic:
+            pushall(pushtext, pushcolor_dic, self.push_list)
+            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+
+# vip=tgt
+class SteamUser(SubMonitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s.txt' % (self.__class__.__name__, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+
+        self.is_firstrun = True
+        self.userdata_dic = {}
+
+    def run(self):
+        while not self.stop_now:
+            # 获取用户信息
+            user_datadic_new = getsteamuser(self.tgt, self.cookies, self.proxy)
+            if isinstance(user_datadic_new, dict):
+                pushtext_body = ""
+                if self.is_firstrun:
+                    self.userdata_dic = user_datadic_new
+                    writelog(self.logpath, '[Info] "%s" getsteamuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                    self.is_firstrun = False
+                else:
+                    for key in user_datadic_new:
+                        if key not in self.userdata_dic:
+                            pushtext_body += "新键：%s\n值：%s\n\n" % (key, str(user_datadic_new[key]))
+                            self.userdata_dic[key] = user_datadic_new[key]
+                        elif self.userdata_dic[key] != user_datadic_new[key]:
+                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
+                                key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
+                            self.userdata_dic[key] = user_datadic_new[key]
+                writelog(self.logpath, '[Success] "%s" getsteamuser %s' % (self.name, self.tgt))
+
+                if pushtext_body:
+                    self.push(pushtext_body)
+            else:
+                printlog('[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
+                writelog(self.logpath, '[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
+            time.sleep(self.interval)
+
+    def push(self, pushtext_body):
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+        pushcolor_dic = pushcolor_vipdic
+
+        if pushcolor_dic:
+            pushtext = "【%s %s 数据改变】\n%s网址：https://steamcommunity.com/profiles/%s" % (
+                self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
+            pushall(pushtext, pushcolor_dic, self.push_list)
+            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
 def getyoutubevideodic(user_id, proxy):
@@ -1431,7 +1571,8 @@ def getyoutubevideostatus(video_id, proxy):
                     video_status = "删除"
                 elif response.json()["status"] == "ok":
                     video_status = "开始"
-                elif "liveStreamability" not in response.json() or "displayEndscreen" in response.json()["liveStreamability"]["liveStreamabilityRenderer"]:
+                elif "liveStreamability" not in response.json() or "displayEndscreen" in \
+                        response.json()["liveStreamability"]["liveStreamabilityRenderer"]:
                     video_status = "结束"
                 else:
                     video_status = "等待"
@@ -2031,6 +2172,55 @@ def getbilibilichathostlist(proxy):
     return hostlist
 
 
+def getloluser(user_name, user_region, proxy):
+    try:
+        userdata_dic = {}
+        response = requests.get("https://%s.op.gg/summoner/l=en_US&userName=%s" % (user_region, user_name),
+                                timeout=(3, 7), proxies=proxy)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'lxml')
+            if soup.find_all(class_="SpectatorError"):
+                userdata_dic["user_status"] = 'not_in_game'
+            else:
+                userdata_dic["user_status"] = 'in_game'
+
+            userdata_dic["user_gamedic"] = {}
+            for gameitem in soup.find_all(class_='GameItemWrap'):
+                user_id = gameitem.div.get('data-summoner-id')
+                game_id = gameitem.div.get('data-game-id')
+                game_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(gameitem.div.get('data-game-time'))))
+                game_result = gameitem.div.get('data-game-result')
+                game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
+                                         gameitem.find(class_='Assist').text)
+                userdata_dic["user_gamedic"][game_id] = {"user_id": user_id, "game_time": game_time,
+                                                         "game_result": game_result, "game_kda": game_kda}
+
+            return userdata_dic
+        else:
+            return False
+    except:
+        return False
+
+
+def getsteamuser(user_id, cookies, proxy):
+    try:
+        userdata_dic = {}
+        response = requests.get("https://steamcommunity.com/profiles/%s" % user_id, cookies=cookies, timeout=(3, 7),
+                                proxies=proxy)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'lxml')
+            userdata_dic["user_position"] = soup.find(class_="header_real_name ellipsis").text.strip()
+            userdata_dic["user_level"] = soup.find(class_="friendPlayerLevelNum").text.strip()
+            for item_count in soup.find_all(class_="profile_count_link ellipsis"):
+                userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
+                    class_="profile_count_link_total").text.strip()
+            return userdata_dic
+        else:
+            return False
+    except:
+        return False
+
+
 # 检测推送力度
 def getpushcolordic(text, dic):
     pushcolor_dic = {}
@@ -2106,10 +2296,12 @@ def pushall(pushtext, pushcolor_dic, push_list):
 def pushtoall(pushtext, push):
     # 不论windows还是linux都是127.0.0.1
     if push['type'] == 'qq_user':
-        url = 'http://127.0.0.1:%s/send_private_msg?user_id=%s&message=%s' % (push['port'], push['id'], quote(str(pushtext)))
+        url = 'http://127.0.0.1:%s/send_private_msg?user_id=%s&message=%s' % (
+            push['port'], push['id'], quote(str(pushtext)))
         pushtourl(url)
     elif push['type'] == 'qq_group':
-        url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (push['port'], push['id'], quote(str(pushtext)))
+        url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (
+            push['port'], push['id'], quote(str(pushtext)))
         pushtourl(url)
     elif push['type'] == 'miaotixing':
         # 带文字推送可能导致语音和短信提醒失效
@@ -2124,12 +2316,17 @@ def pushtoall(pushtext, push):
         data = {"content": pushtext}
         pushtourl(url, headers, json.dumps(data))
     elif push['type'] == 'telegram':
-        url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=@%s&text=%s' % (push['bot_id'], push['id'], quote(str(pushtext)))
+        url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=@%s&text=%s' % (
+            push['bot_id'], push['id'], quote(str(pushtext)))
         pushtourl(url)
 
 
 # 推送到url
-def pushtourl(url, headers={}, data={}):
+def pushtourl(url, headers=None, data=None):
+    if data is None:
+        data = {}
+    if headers is None:
+        headers = {}
     for retry in range(1, 5):
         status_code = 'fail'
         try:
@@ -2168,7 +2365,7 @@ def second_to_time(seconds):
     seconds = seconds - h * 3600
     m = int(seconds / 60)
     s = seconds - m * 60
-    
+
     if d == 0:
         if h == 0:
             return "%s分%s秒" % (m, s)
