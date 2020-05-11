@@ -1427,7 +1427,7 @@ class LolUser(SubMonitor):
             if self.user_id:
                 renew = renewloluser(self.user_id, self.tgt_region, self.proxy)
                 if renew:
-                    writelog(self.logpath, '[Success] "%s" renewloluser %s' % (self.name, self.tgt))
+                    writelog(self.logpath, '[Success] "%s" renewloluser %s' % (self.name, self.user_id))
                     user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
                     if isinstance(user_datadic_new, dict):
                         pushtext_body = ""
@@ -1465,8 +1465,8 @@ class LolUser(SubMonitor):
                         printlog('[Error] "%s" getloluser %s' % (self.name, self.tgt))
                         writelog(self.logpath, '[Error] "%s" getloluser %s' % (self.name, self.tgt))
                 else:
-                    printlog('[Error] "%s" renewloluser %s' % (self.name, self.tgt))
-                    writelog(self.logpath, '[Error] "%s" renewloluser %s' % (self.name, self.tgt))
+                    printlog('[Error] "%s" renewloluser %s' % (self.name, self.user_id))
+                    writelog(self.logpath, '[Error] "%s" renewloluser %s' % (self.name, self.user_id))
             time.sleep(self.interval)
 
     def push(self, pushtext):
