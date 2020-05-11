@@ -2209,12 +2209,13 @@ def getsteamuser(user_id, cookies, proxy):
                                 proxies=proxy)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'lxml')
-            userdata_dic["user_position"] = soup.find(class_="header_real_name ellipsis").text.strip()
-            userdata_dic["user_level"] = soup.find(class_="friendPlayerLevelNum").text.strip()
-            userdata_dic["user_status"] = soup.find(class_="profile_in_game_header").text.strip()
-            for item_count in soup.find_all(class_="profile_count_link ellipsis"):
-                userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
-                    class_="profile_count_link_total").text.strip()
+            if not soup.find(class_="profile_private_info"):
+                userdata_dic["user_position"] = soup.find(class_="header_real_name ellipsis").text.strip()
+                userdata_dic["user_level"] = soup.find(class_="friendPlayerLevelNum").text.strip()
+                userdata_dic["user_status"] = soup.find(class_="profile_in_game_header").text.strip()
+                for item_count in soup.find_all(class_="profile_count_link ellipsis"):
+                    userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
+                        class_="profile_count_link_total").text.strip()
             return userdata_dic
         else:
             return False
