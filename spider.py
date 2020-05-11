@@ -1424,7 +1424,7 @@ class LolUser(SubMonitor):
                         # 不可能会增加新键所以不做判断
                         if key == 'user_gamedic':
                             for gameid in user_datadic_new['user_gamedic']:
-                                if int(gameid) > self.lastgameid:
+                                if gameid > self.lastgameid:
                                     pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s\n网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
                                         self.__class__.__name__, self.tgt_name,
                                         user_datadic_new['user_gamedic'][gameid]['game_result'],
@@ -2186,8 +2186,8 @@ def getloluser(user_name, user_region, proxy):
 
             userdata_dic["user_gamedic"] = {}
             for gameitem in soup.find_all(class_='GameItemWrap'):
-                user_id = gameitem.div.get('data-summoner-id')
-                game_id = gameitem.div.get('data-game-id')
+                user_id = int(gameitem.div.get('data-summoner-id'))
+                game_id = int(gameitem.div.get('data-game-id'))
                 game_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(gameitem.div.get('data-game-time'))))
                 game_result = gameitem.div.get('data-game-result')
                 game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
