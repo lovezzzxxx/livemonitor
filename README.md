@@ -105,7 +105,7 @@ FanboxPost|监视fanbox用户帖子|同上|target|帖子文字|付费帖子，�
 BilibiliLive|监视bilibili直播|同上|target|标题|可留空|"offline_chat"，"simple_mode"，"no_chat"，"status_push"，"regen"，"regen_amount"|offline_chat为是否监测离线直播间的弹幕 默认为"False" 可选"True"，simple_mode为只推送弹幕文字 如果为数字则会将相应数量的弹幕整合推送 默认为"False" 可选"合并数量"，no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"开始\|结束"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
 BilibiliChat|监视bilibili直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由BilibiliLive监视器创建 无需在配置文件中指定，无法直接指定proxy
 LolUser|监视lol比赛状况与最近比赛结果|同上|target||可留空|||
-SteamUser|监视steam在线状况与基本信息|同上|target||查看自己或好友可见的内容，可留空|"user_region"|user_region为账号所在的地区 即[jp.op.gg](https://jp.op.gg/summoner/l=en_US&userName=%E3%81%8B%E3%81%90%E3%82%89%E3%82%81%E3%81%82%E3%81%A3)网站开头部分 默认为"jp"|由于op.gg最短更新间隔限制为120秒 所以不建议将检测间隔设置为小于120秒 否则可能会偶尔报错
+SteamUser|监视steam在线状况与基本信息|同上|target||查看自己或好友可见的内容，可留空|"user_region"|user_region为账号所在的地区 即[jp.op.gg](https://jp.op.gg/summoner/l=en_US&userName=%E3%81%8B%E3%81%90%E3%82%89%E3%82%81%E3%81%82%E3%81%A3)网站开头部分 默认为"jp"，由于op.gg最短更新间隔限制为120秒 所以不建议将检测间隔设置为小于120秒 否则可能会偶尔报错
 
 ### 常见故障
 ##### 运行闪退
