@@ -371,7 +371,6 @@ class YoutubeChat(SubMonitor):
                 self.regen_time = time_now
                 for color in list(self.pushpunish):
                     if self.pushpunish[color] > regen_amt:
-                        print(color, self.pushpunish[color], regen_amt)
                         self.pushpunish[color] -= regen_amt
                     else:
                         self.pushpunish.pop(color)
@@ -531,12 +530,12 @@ class TwitterUser(SubMonitor):
             # 获取用户信息
             user_datadic_new = gettwitteruser(self.tgt, self.cookies, self.proxy)
             if isinstance(user_datadic_new, dict):
-                pushtext_body = ""
                 if self.is_firstrun:
                     self.userdata_dic = user_datadic_new
                     writelog(self.logpath, '[Info] "%s" gettwitteruser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
+                    pushtext_body = ""
                     for key in user_datadic_new:
                         # 不可能会增加新键所以不做判断
                         if self.userdata_dic[key] != user_datadic_new[key]:
@@ -548,10 +547,10 @@ class TwitterUser(SubMonitor):
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
+                    
+                    if pushtext_body:
+                        self.push(pushtext_body)
                 writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
-
-                if pushtext_body:
-                    self.push(pushtext_body)
             else:
                 printlog('[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
@@ -900,7 +899,6 @@ class TwitcastChat(SubMonitor):
                 self.regen_time = time_now
                 for color in list(self.pushpunish):
                     if self.pushpunish[color] > regen_amt:
-                        print(color, self.pushpunish[color], regen_amt)
                         self.pushpunish[color] -= regen_amt
                     else:
                         self.pushpunish.pop(color)
@@ -940,22 +938,22 @@ class FanboxUser(SubMonitor):
             # 获取用户信息
             user_datadic_new = getfanboxuser(self.tgt, self.proxy)
             if isinstance(user_datadic_new, dict):
-                pushtext_body = ""
                 if self.is_firstrun:
                     self.userdata_dic = user_datadic_new
                     writelog(self.logpath, '[Info] "%s" getfanboxuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
+                    pushtext_body = ""
                     for key in user_datadic_new:
                         # 不可能会增加新键所以不做判断
                         if self.userdata_dic[key] != user_datadic_new[key]:
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
+                    
+                    if pushtext_body:
+                        self.push(pushtext_body)
                 writelog(self.logpath, '[Success] "%s" getfanboxuser %s' % (self.name, self.tgt))
-
-                if pushtext_body:
-                    self.push(pushtext_body)
             else:
                 printlog('[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
@@ -1382,7 +1380,6 @@ class BilibiliChat(SubMonitor):
                 self.regen_time = time_now
                 for color in list(self.pushpunish):
                     if self.pushpunish[color] > regen_amt:
-                        print(color, self.pushpunish[color], regen_amt)
                         self.pushpunish[color] -= regen_amt
                     else:
                         self.pushpunish.pop(color)
@@ -1425,6 +1422,10 @@ class LolUser(SubMonitor):
             getattr(self, "tgt_region")
         except:
             self.tgt_region = "jp"
+        try:
+            getattr(self, "ingame_onstart")
+        except:
+            self.ingame_onstart = "True"
 
     def run(self):    
         while not self.stop_now:
@@ -1432,6 +1433,12 @@ class LolUser(SubMonitor):
             user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
             if isinstance(user_datadic_new, dict):
                 if self.is_firstrun:
+                    # 首次在线即推送
+                    if self.ingame_onstart == "True" and user_datadic_new['user_status'] == 'in_game':
+                        pushtext = "【%s %s 当前比赛】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                            self.__class__.__name__, self.tgt_name, user_datadic_new['user_gametime'], self.tgt_region, self.tgt)
+                        self.push(pushtext)
+                    
                     self.userdata_dic = user_datadic_new
                     try:
                         self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
@@ -1440,16 +1447,12 @@ class LolUser(SubMonitor):
                     writelog(self.logpath, '[Info] "%s" getloluser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
-                    pushtext_body = ""
                     for key in user_datadic_new:
-                        # 用户id与时间戳 不推送
-                        if key == 'user_id' or key == 'renew_timestamp':
-                            self.userdata_dic[key] = user_datadic_new[key]
                         # 比赛结果 直接推送
-                        elif key == 'user_gamedic':
+                        if key == 'user_gamedic':
                             for gameid in user_datadic_new['user_gamedic']:
                                 if gameid > self.lastgameid:
-                                    pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s\n网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
+                                    pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
                                         self.__class__.__name__, self.tgt_name,
                                         user_datadic_new['user_gamedic'][gameid]['game_result'],
                                         user_datadic_new['user_gamedic'][gameid]['game_kda'],
@@ -1460,30 +1463,34 @@ class LolUser(SubMonitor):
                                 self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
                             except:
                                 pass
-                        # 其他信息 整合推送
-                        elif self.userdata_dic[key] != user_datadic_new[key]:
-                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
-                                key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
+                        # 当前游戏 整合推送
+                        elif key == 'user_status':
+                            if user_datadic_new[key] != self.userdata_dic[key]:
+                                if user_datadic_new[key] == 'in_game':
+                                    pushtext = "【%s %s 比赛开始】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                                        self.__class__.__name__, self.tgt_name, user_datadic_new['user_gametime'], self.tgt_region, self.tgt)
+                                    self.push(pushtext)
+                                else:
+                                    pushtext = "【%s %s 比赛结束】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                                        self.__class__.__name__, self.tgt_name, user_datadic_new['user_gametime'], self.tgt_region, self.tgt)
+                                    self.push(pushtext)
                             self.userdata_dic[key] = user_datadic_new[key]
-                    
-                    if pushtext_body:
-                        pushtext = "【%s %s 数据改变】\n%s网址：https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (
-                            self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt_region, self.tgt)
-                        self.push(pushtext)
+                        # 其他 不推送
+                        else:
+                            self.userdata_dic[key] = user_datadic_new[key]
                 writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
+                
+                # 更新信息 最短间隔120秒
+                if round(time.mktime(time.localtime())) - self.userdata_dic['renew_timestamp'] > 120:
+                    renew = renewloluser(self.userdata_dic['user_id'], self.tgt_region, self.proxy)
+                    if renew:
+                        writelog(self.logpath, '[Success] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
+                    else:
+                        printlog('[Error] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
+                        writelog(self.logpath, '[Error] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
             else:
                 printlog('[Error] "%s" getloluser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" getloluser %s' % (self.name, self.tgt))
-            
-            # 更新信息 最短间隔120秒
-            if round(time.mktime(time.localtime())) - self.userdata_dic['renew_timestamp'] > 120:
-                renew = renewloluser(self.userdata_dic['user_id'], self.tgt_region, self.proxy)
-                if renew:
-                    writelog(self.logpath, '[Success] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
-                else:
-                    printlog('[Error] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
-                    writelog(self.logpath, '[Error] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
-            
             time.sleep(self.interval)
 
     def push(self, pushtext):
@@ -1507,18 +1514,27 @@ class SteamUser(SubMonitor):
 
         self.is_firstrun = True
         self.userdata_dic = {}
+        try:
+            getattr(self, "online_onstart")
+        except:
+            self.online_onstart = "True"
 
     def run(self):
         while not self.stop_now:
             # 获取用户信息
             user_datadic_new = getsteamuser(self.tgt, self.cookies, self.proxy)
             if isinstance(user_datadic_new, dict):
-                pushtext_body = ""
                 if self.is_firstrun:
+                    # 首次在线即推送
+                    if self.online_onstart == "True" and 'user_status' in user_datadic_new and (user_datadic_new['user_status'] == 'Currently Online' or user_datadic_new['user_status'] == '当前在线' or user_datadic_new['user_status'] == '現在オンラインです。'):
+                        pushtext = "【%s %s 当前在线】\n网址：https://steamcommunity.com/profiles/%s" % (self.__class__.__name__, self.tgt_name, self.tgt)
+                        self.push(pushtext)
+
                     self.userdata_dic = user_datadic_new
                     writelog(self.logpath, '[Info] "%s" getsteamuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
+                    pushtext_body = ""
                     for key in user_datadic_new:
                         if key not in self.userdata_dic:
                             pushtext_body += "新键：%s\n值：%s\n\n" % (key, str(user_datadic_new[key]))
@@ -1527,22 +1543,24 @@ class SteamUser(SubMonitor):
                             pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
+                    
+                    if pushtext_body:
+                        pushtext = "【%s %s 数据改变】\n%s网址：https://steamcommunity.com/profiles/%s" % (
+                            self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
+                        self.push(pushtext)
                 writelog(self.logpath, '[Success] "%s" getsteamuser %s' % (self.name, self.tgt))
 
-                if pushtext_body:
-                    self.push(pushtext_body)
+
             else:
                 printlog('[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
-    def push(self, pushtext_body):
+    def push(self, pushtext):
         pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
-            pushtext = "【%s %s 数据改变】\n%s网址：https://steamcommunity.com/profiles/%s" % (
-                self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -2216,7 +2234,6 @@ def getloluser(user_name, user_region, proxy):
                                 timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'lxml')
-            
             # 用户id与时间戳
             userdata_dic["user_id"] = int(soup.find(id="SummonerRefreshButton").get('onclick').split("'")[1])
             userdata_dic["renew_timestamp"] = int(soup.find(class_="LastUpdate").span.get('data-datetime'))
@@ -2230,16 +2247,25 @@ def getloluser(user_name, user_region, proxy):
                 game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
                                          gameitem.find(class_='Assist').text)
                 userdata_dic["user_gamedic"][game_id] = {"game_time": game_time, "game_result": game_result, "game_kda": game_kda}
-            
-            # 其他信息
-            if soup.find_all(class_="SpectatorError"):
-                userdata_dic["user_status"] = 'not_in_game'
-            else:
-                userdata_dic["user_status"] = 'in_game'
-            
-            return userdata_dic
         else:
             return False
+        
+        response = requests.get("https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (user_region, user_name),
+                                timeout=(3, 7), proxies=proxy)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'lxml')
+            # 当前游戏
+            current_gameitem = soup.find(class_="SpectateSummoner")
+            if current_gameitem:
+                userdata_dic["user_status"] = 'in_game'
+                userdata_dic["user_gametime"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(current_gameitem.find(class_="Time").span.get("data-datetime"))))
+            else:
+                userdata_dic["user_status"] = 'not_in_game'
+                userdata_dic["user_gametime"] = False
+        else:
+            return False
+
+        return userdata_dic
     except:
         return False
 
