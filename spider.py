@@ -1417,7 +1417,7 @@ class LolUser(SubMonitor):
 
         self.is_firstrun = True
         self.userdata_dic = {}
-        self.lastgameid = 0
+        self.lastgametimestamp = 0
         try:
             getattr(self, "tgt_region")
         except:
@@ -1436,12 +1436,12 @@ class LolUser(SubMonitor):
                     # 首次在线即推送
                     if self.ingame_onstart == "True" and user_datadic_new['user_status'] == 'in_game':
                         pushtext = "【%s %s 当前比赛】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                            self.__class__.__name__, self.tgt_name, user_datadic_new['user_gametime'], self.tgt_region, self.tgt)
+                            self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
                         self.push(pushtext)
                     
                     self.userdata_dic = user_datadic_new
                     try:
-                        self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+                        self.lastgametimestamp = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
                     except:
                         pass
                     writelog(self.logpath, '[Info] "%s" getloluser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
@@ -1450,17 +1450,17 @@ class LolUser(SubMonitor):
                     for key in user_datadic_new:
                         # 比赛结果 直接推送
                         if key == 'user_gamedic':
-                            for gameid in user_datadic_new['user_gamedic']:
-                                if gameid > self.lastgameid:
+                            for gametimestamp in user_datadic_new['user_gamedic']:
+                                if gametimestamp > self.lastgametimestamp:
                                     pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
                                         self.__class__.__name__, self.tgt_name,
-                                        user_datadic_new['user_gamedic'][gameid]['game_result'],
-                                        user_datadic_new['user_gamedic'][gameid]['game_kda'],
-                                        user_datadic_new['user_gamedic'][gameid]['game_time'], self.tgt_region,
-                                        self.tgt)
+                                        user_datadic_new['user_gamedic'][gametimestamp]['game_result'],
+                                        user_datadic_new['user_gamedic'][gametimestamp]['game_kda'],
+                                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(gametimestamp)), 
+                                        self.tgt_region, self.tgt)
                                     self.push(pushtext)
                             try:
-                                self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+                                self.lastgametimestamp = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
                             except:
                                 pass
                         # 当前游戏 整合推送
@@ -1468,11 +1468,11 @@ class LolUser(SubMonitor):
                             if user_datadic_new[key] != self.userdata_dic[key]:
                                 if user_datadic_new[key] == 'in_game':
                                     pushtext = "【%s %s 比赛开始】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                                        self.__class__.__name__, self.tgt_name, user_datadic_new['user_gametime'], self.tgt_region, self.tgt)
+                                        self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
                                     self.push(pushtext)
                                 else:
-                                    pushtext = "【%s %s 比赛结束】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                                        self.__class__.__name__, self.tgt_name, user_datadic_new['user_gametime'], self.tgt_region, self.tgt)
+                                    pushtext = "【%s %s 比赛结束】\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                                        self.__class__.__name__, self.tgt_name, self.tgt_region, self.tgt)
                                     self.push(pushtext)
                             self.userdata_dic[key] = user_datadic_new[key]
                         # 其他 不推送
@@ -2241,12 +2241,12 @@ def getloluser(user_name, user_region, proxy):
             # 比赛结果
             userdata_dic["user_gamedic"] = {}
             for gameitem in soup.find_all(class_='GameItemWrap'):
+                game_timestamp = int(gameitem.div.get('data-game-time'))
                 game_id = int(gameitem.div.get('data-game-id'))
-                game_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(gameitem.div.get('data-game-time'))))
                 game_result = gameitem.div.get('data-game-result')
                 game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
                                          gameitem.find(class_='Assist').text)
-                userdata_dic["user_gamedic"][game_id] = {"game_time": game_time, "game_result": game_result, "game_kda": game_kda}
+                userdata_dic["user_gamedic"][game_timestamp] = {"game_id": game_id, "game_result": game_result, "game_kda": game_kda}
         else:
             return False
         
@@ -2258,10 +2258,10 @@ def getloluser(user_name, user_region, proxy):
             current_gameitem = soup.find(class_="SpectateSummoner")
             if current_gameitem:
                 userdata_dic["user_status"] = 'in_game'
-                userdata_dic["user_gametime"] = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(int(current_gameitem.find(class_="Time").span.get("data-datetime"))))
+                userdata_dic["user_gametimestamp"] = int(current_gameitem.find(class_="Time").span.get("data-datetime"))
             else:
                 userdata_dic["user_status"] = 'not_in_game'
-                userdata_dic["user_gametime"] = False
+                userdata_dic["user_gametimestamp"] = False
         else:
             return False
 
