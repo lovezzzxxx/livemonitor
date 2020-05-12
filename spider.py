@@ -2447,7 +2447,6 @@ def createmonitor(monitor_name, config):
     return monitor_thread
 
 
-print(getloluser('田中庄司', 'jp', ''))
 if __name__ == '__main__':
     if not os.path.exists('./log'):
         os.makedirs('./log')
