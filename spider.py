@@ -345,7 +345,7 @@ class YoutubeChat(SubMonitor):
 
     def push(self, chat):
         writelog(self.logpath, "%s\t%s(%s)\t(%s)%s" % (
-            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(chat["chat_timestamp"])),
+            time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(chat["chat_timestamp"])),
             chat["chat_username"], chat["chat_userchannel"], chat["chat_type"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_userchannel"], self.vip_dic)
@@ -630,10 +630,10 @@ class TwitterTweet(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s (GMT)\n网址：https://twitter.com/%s/status/%s" % (
+            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/%s/status/%s" % (
                 self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
                 tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
-                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), self.tgt,
+                time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(tweetdic[tweet_id]["tweet_timestamp"])), self.tgt,
                 tweet_id)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -718,11 +718,11 @@ class TwitterSearch(SubMonitor):
             pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
             if pushcolor_dic:
-                pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s (GMT)\n网址：https://twitter.com/a/status/%s" % (
+                pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/a/status/%s" % (
                     self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
                     tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"],
                     tweetdic[tweet_id]["tweet_urls"],
-                    time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
+                    time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -874,7 +874,7 @@ class TwitcastChat(SubMonitor):
 
     def push(self, chat):
         writelog(self.logpath, "%s\t%s(%s)\t%s" % (
-            time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(round(int(chat["chat_timestamp"]) / 1000))),
+            time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(round(int(chat["chat_timestamp"]) / 1000))),
             chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
@@ -1007,11 +1007,11 @@ class FanboxPost(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 社区帖子】\n标题：%s\n内容：%s\n类型：%s\n档位：%s\n时间：%s (GMT)\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
+            pushtext = "【%s %s 社区帖子】\n标题：%s\n内容：%s\n类型：%s\n档位：%s\n时间：%s\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_title"],
                 postdic[post_id]["post_text"][0:2500],
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
-                time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(postdic[post_id]["post_publishtimestamp"])), self.tgt,
+                time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(postdic[post_id]["post_publishtimestamp"])), self.tgt,
                 post_id)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1435,8 +1435,8 @@ class LolUser(SubMonitor):
                 if self.is_firstrun:
                     # 首次在线即推送
                     if self.ingame_onstart == "True" and user_datadic_new['user_status'] == 'in_game':
-                        pushtext = "【%s %s 当前比赛】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                            self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
+                        pushtext = "【%s %s 当前比赛】\n时间：%s\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                            self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
                         self.push(pushtext)
                     
                     self.userdata_dic = user_datadic_new
@@ -1452,11 +1452,11 @@ class LolUser(SubMonitor):
                         if key == 'user_gamedic':
                             for gametimestamp in user_datadic_new['user_gamedic']:
                                 if gametimestamp > self.lastgametimestamp:
-                                    pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                                    pushtext = "【%s %s 比赛统计】\n结果：%s\nKDA：%s\n时间：%s\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
                                         self.__class__.__name__, self.tgt_name,
                                         user_datadic_new['user_gamedic'][gametimestamp]['game_result'],
                                         user_datadic_new['user_gamedic'][gametimestamp]['game_kda'],
-                                        time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(gametimestamp)), 
+                                        time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(gametimestamp)), 
                                         self.tgt_region, self.tgt)
                                     self.push(pushtext)
                             try:
@@ -1467,8 +1467,8 @@ class LolUser(SubMonitor):
                         elif key == 'user_status':
                             if user_datadic_new[key] != self.userdata_dic[key]:
                                 if user_datadic_new[key] == 'in_game':
-                                    pushtext = "【%s %s 比赛开始】\n时间：%s(GMT)\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                                        self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
+                                    pushtext = "【%s %s 比赛开始】\n时间：%s\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
+                                        self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
                                     self.push(pushtext)
                                 else:
                                     pushtext = "【%s %s 比赛结束】\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
@@ -1481,7 +1481,7 @@ class LolUser(SubMonitor):
                 writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
                 
                 # 更新信息 最短间隔120秒
-                if round(time.mktime(time.localtime())) - self.userdata_dic['renew_timestamp'] > 120:
+                if round(time.time()) - self.userdata_dic['renew_timestamp'] > 120:
                     renew = renewloluser(self.userdata_dic['user_id'], self.tgt_region, self.proxy)
                     if renew:
                         writelog(self.logpath, '[Success] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
@@ -2194,7 +2194,7 @@ def getbilibililivedic(room_id, proxy):
         if response.status_code == 200:
             live = response.json()['data']
             try:
-                live_id = round(time.mktime(time.strptime(live['live_time'], '%Y-%m-%d %H:%M:%S')))
+                live_id = round(time.mktime(time.strptime(live['live_time'] + " UTC", '%Y-%m-%d %H:%M:%S %Z')) - 3600*8)
             except:
                 live_id = ''
             if live['live_status'] == 1:
@@ -2424,13 +2424,13 @@ def pushtourl(url, headers=None, data=None):
 
 
 def printlog(text):
-    logtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    logtime = time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime())
     print("[%s] %s" % (logtime, text))
     return
 
 
 def writelog(logpath, text):
-    logtime = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    logtime = time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime())
     with open(logpath, 'a', encoding='utf-8') as log:
         log.write("[%s] %s\n" % (logtime, text))
     return
