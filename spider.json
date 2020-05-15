@@ -120,13 +120,13 @@
 	"fanbox": {
 		"interval": 180,
 		"submonitor_dic": {
-			"FanboxUser 神楽めあ": {"class": "FanboxUser", "target": "32024360", "target_name": "神楽めあ", "config_name": "fanbox_config"},
-			"FanboxPost 神楽めあ": {"class": "FanboxPost", "target": "32024360", "target_name": "神楽めあ", "config_name": "fanbox_config"}
+			"FanboxUser 神楽めあ": {"class": "FanboxUser", "target": "mea", "target_name": "神楽めあ", "config_name": "fanbox_config"},
+			"FanboxPost 神楽めあ": {"class": "FanboxPost", "target": "mea", "target_name": "神楽めあ", "config_name": "fanbox_config"}
 		},
 		"fanbox_config": {
 			"interval": 180,
 			"vip_dic": {
-				"32024360": {"mea": 10}
+				"mea": {"mea": 10}
 			},
 			"word_dic": {},
 			"cookies": {},
