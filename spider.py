@@ -964,7 +964,7 @@ class FanboxUser(SubMonitor):
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
-            pushtext = "【%s %s 数据改变】\n%s网址：https://twitter.com/%s" % (
+            pushtext = "【%s %s 数据改变】\n%s网址：https://%s.fanbox.cc/" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, self.tgt)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1007,7 +1007,7 @@ class FanboxPost(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 社区帖子】\n标题：%s\n内容：%s\n类型：%s\n档位：%s\n时间：%s\n网址：https://www.pixiv.net/fanbox/creator/%s/post/%s" % (
+            pushtext = "【%s %s 社区帖子】\n标题：%s\n内容：%s\n类型：%s\n档位：%s\n时间：%s\n网址：https://%s.fanbox.cc/posts/%s" % (
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_title"],
                 postdic[post_id]["post_text"][0:2500],
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
@@ -2109,13 +2109,13 @@ def getfanboxuser(user_id, proxy):
             "Cache-Control": "max-age=0",
             "Connection": "keep-alive",
             "DNT": "1",
-            "Host": "fanbox.pixiv.net",
-            "Origin": "https://www.pixiv.net",
-            "Referer": "https://www.pixiv.net/",
+            "Host": "api.fanbox.cc",
+            "Origin": "https://%s.fanbox.cc" % user_id,
+            "Referer": "https://%s.fanbox.cc/" % user_id,
             "TE": "Trailers",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0"
         }
-        response = requests.get("https://fanbox.pixiv.net/api/creator.get?userId=%s" % user_id, headers=headers,
+        response = requests.get("https://api.fanbox.cc/creator.get?creatorId=%s" % user_id, headers=headers,
                                 timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             userdata_dic["user_id"] = response.json()["body"]["user"]["userId"]
@@ -2123,12 +2123,10 @@ def getfanboxuser(user_id, proxy):
             userdata_dic["user_icon"] = response.json()["body"]["user"]["iconUrl"]
             userdata_dic["description"] = response.json()["body"]["description"]
             userdata_dic["coverimage"] = response.json()["body"]["coverImageUrl"]
-            userdata_dic["description"] = response.json()["body"]["description"]
             userdata_dic["profilelinks"] = response.json()["body"]["profileLinks"]
             userdata_dic["hasboothshop"] = response.json()["body"]["hasBoothShop"]
             userdata_dic["hasadultcontent"] = response.json()["body"]["hasAdultContent"]
             userdata_dic["isstopped"] = response.json()["body"]["isStopped"]
-            userdata_dic["hasadultcontent"] = response.json()["body"]["hasAdultContent"]
             return userdata_dic
         else:
             return False
@@ -2146,13 +2144,13 @@ def getfanboxpostdic(user_id, cookies, proxy):
             "Cache-Control": "max-age=0",
             "Connection": "keep-alive",
             "DNT": "1",
-            "Host": "fanbox.pixiv.net",
-            "Origin": "https://www.pixiv.net",
-            "Referer": "https://www.pixiv.net/",
+            "Host": "api.fanbox.cc",
+            "Origin": "https://%s.fanbox.cc" % user_id,
+            "Referer": "https://%s.fanbox.cc/" % user_id,
             "TE": "Trailers",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:73.0) Gecko/20100101 Firefox/73.0"
         }
-        response = requests.get("https://fanbox.pixiv.net/api/post.listCreator?userId=%s&limit=10" % user_id,
+        response = requests.get("https://api.fanbox.cc/post.listCreator?creatorId=%s&limit=10" % user_id,
                                 headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             post_list = response.json()['body']['items']
