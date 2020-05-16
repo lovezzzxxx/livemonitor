@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import time
+import datetime
 import copy
 import re
 import random
@@ -345,7 +346,7 @@ class YoutubeChat(SubMonitor):
 
     def push(self, chat):
         writelog(self.logpath, "%s\t%s(%s)\t(%s)%s" % (
-            time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(chat["chat_timestamp"])),
+            datetime.datetime.utcfromtimestamp(chat["chat_timestamp"]).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
             chat["chat_username"], chat["chat_userchannel"], chat["chat_type"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_userchannel"], self.vip_dic)
@@ -633,8 +634,8 @@ class TwitterTweet(SubMonitor):
             pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/%s/status/%s" % (
                 self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
                 tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
-                time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(tweetdic[tweet_id]["tweet_timestamp"])), self.tgt,
-                tweet_id)
+                datetime.datetime.utcfromtimestamp(tweetdic[tweet_id]["tweet_timestamp"]).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
+                self.tgt, tweet_id)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -720,9 +721,9 @@ class TwitterSearch(SubMonitor):
             if pushcolor_dic:
                 pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/a/status/%s" % (
                     self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
-                    tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"],
-                    tweetdic[tweet_id]["tweet_urls"],
-                    time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(tweetdic[tweet_id]["tweet_timestamp"])), tweet_id)
+                    tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
+                    datetime.datetime.utcfromtimestamp(tweetdic[tweet_id]["tweet_timestamp"]).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
+                    tweet_id)
                 pushall(pushtext, pushcolor_dic, self.push_list)
                 printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
                 writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -874,7 +875,7 @@ class TwitcastChat(SubMonitor):
 
     def push(self, chat):
         writelog(self.logpath, "%s\t%s(%s)\t%s" % (
-            time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(round(int(chat["chat_timestamp"]) / 1000))),
+            datetime.datetime.utcfromtimestamp(round(int(chat["chat_timestamp"]) / 1000)).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
             chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
@@ -1011,8 +1012,8 @@ class FanboxPost(SubMonitor):
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_title"],
                 postdic[post_id]["post_text"][0:2500],
                 postdic[post_id]["post_type"], postdic[post_id]['post_fee'],
-                time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(postdic[post_id]["post_publishtimestamp"])), self.tgt,
-                post_id)
+                datetime.datetime.utcfromtimestamp(postdic[post_id]["post_publishtimestamp"]).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
+                self.tgt, post_id)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1436,7 +1437,8 @@ class LolUser(SubMonitor):
                     # 首次在线即推送
                     if self.ingame_onstart == "True" and user_datadic_new['user_status'] == 'in_game':
                         pushtext = "【%s %s 当前比赛】\n时间：%s\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                            self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
+                            self.__class__.__name__, self.tgt_name, datetime.datetime.utcfromtimestamp(user_datadic_new['user_gametimestamp']).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"), 
+                            self.tgt_region, self.tgt)
                         self.push(pushtext)
                     
                     self.userdata_dic = user_datadic_new
@@ -1456,7 +1458,7 @@ class LolUser(SubMonitor):
                                         self.__class__.__name__, self.tgt_name,
                                         user_datadic_new['user_gamedic'][gametimestamp]['game_result'],
                                         user_datadic_new['user_gamedic'][gametimestamp]['game_kda'],
-                                        time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(gametimestamp)), 
+                                        datetime.datetime.utcfromtimestamp(gametimestamp).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
                                         self.tgt_region, self.tgt)
                                     self.push(pushtext)
                             try:
@@ -1468,7 +1470,9 @@ class LolUser(SubMonitor):
                             if user_datadic_new[key] != self.userdata_dic[key]:
                                 if user_datadic_new[key] == 'in_game':
                                     pushtext = "【%s %s 比赛开始】\n时间：%s\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                                        self.__class__.__name__, self.tgt_name, time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime(user_datadic_new['user_gametimestamp'])), self.tgt_region, self.tgt)
+                                        self.__class__.__name__, self.tgt_name,
+                                        datetime.datetime.utcfromtimestamp(user_datadic_new['user_gametimestamp']).replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"), 
+                                        self.tgt_region, self.tgt)
                                     self.push(pushtext)
                                 else:
                                     pushtext = "【%s %s 比赛结束】\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
@@ -2422,13 +2426,13 @@ def pushtourl(url, headers=None, data=None):
 
 
 def printlog(text):
-    logtime = time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime())
+    logtime = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
     print("[%s] %s" % (logtime, text))
     return
 
 
 def writelog(logpath, text):
-    logtime = time.strftime('%Y-%m-%d %H:%M:%S %z', time.gmtime())
+    logtime = datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
     with open(logpath, 'a', encoding='utf-8') as log:
         log.write("[%s] %s\n" % (logtime, text))
     return
