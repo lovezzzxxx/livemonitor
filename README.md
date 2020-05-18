@@ -109,7 +109,7 @@ SteamUser|监视steam在线状况与基本信息|同上|target||查看自己或�
 
 ### 常见故障
 ##### 运行闪退
-请确保使用的配置文件（默认为spider.json）为标准的json格式
+请确保使用的配置文件（默认为spider.json）为标准的json格式，py脚本与json配置文件为utf-8编码。
 ##### 运行后出现很多error信息
 如果同时存在youtube和twitter监视器的error信息，可能是网络原因导致的，由于在脚本刚开始运行时会产生比较多的请求，可能会导致一些请求超时。可以尝试等待一段时间或者重启脚本。  
 如果只有twitter监视器的error信息，可能是twitter配置下的cookies不正确导致的，请确保cookies也为json格式，下面是一个cookies示例。
