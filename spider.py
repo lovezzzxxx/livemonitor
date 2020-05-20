@@ -2461,6 +2461,7 @@ def getosuuser(user_id, cookies, proxy):
             userdata_dic.pop('statistics')
 
             userdata_dic.pop('follower_count')
+            userdata_dic.pop('rank')
 
             # 比赛结果
             userdata_dic["user_gamedic"] = {}
@@ -2656,6 +2657,8 @@ def createmonitor(monitor_name, config):
 
 
 if __name__ == '__main__':
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     if not os.path.exists('./log'):
         os.makedirs('./log')
     if not os.path.isfile('./pause.json'):
