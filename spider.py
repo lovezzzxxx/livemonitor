@@ -544,14 +544,15 @@ class TwitterUser(SubMonitor):
                 else:
                     pushtext_body = ""
                     for key in user_datadic_new:
-                        # 不可能会增加新键所以不做判断
-                        if self.userdata_dic[key] != user_datadic_new[key]:
+                        if key not in self.userdata_dic:
+                            pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
+                            self.userdata_dic[key] = user_datadic_new[key]
+                        elif self.userdata_dic[key] != user_datadic_new[key]:
                             if self.no_increase == "True" and (key == "user_twitcount" or key == "user_mediacount"):
                                 if self.userdata_dic[key] < user_datadic_new[key]:
                                     self.userdata_dic[key] = user_datadic_new[key]
                                     continue
-
-                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
+                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
 
@@ -597,7 +598,7 @@ class TwitterTweet(SubMonitor):
             if not self.tgt_restid:
                 tgt_dic = gettwitteruser(self.tgt, self.cookies, self.proxy)
                 if isinstance(tgt_dic, dict):
-                    self.tgt_restid = tgt_dic["user_restid"]
+                    self.tgt_restid = tgt_dic["rest_id"]
                     writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
                 else:
                     printlog('[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
@@ -963,9 +964,11 @@ class FanboxUser(SubMonitor):
                 else:
                     pushtext_body = ""
                     for key in user_datadic_new:
-                        # 不可能会增加新键所以不做判断
-                        if self.userdata_dic[key] != user_datadic_new[key]:
-                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
+                        if key not in self.userdata_dic:
+                            pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
+                            self.userdata_dic[key] = user_datadic_new[key]
+                        elif self.userdata_dic[key] != user_datadic_new[key]:
+                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
 
@@ -1437,7 +1440,7 @@ class BilibiliChat(SubMonitor):
         self.ws.close()
 
 
-# vip=tgt
+# vip=tgt, "ingame_onstart"="True"/"False"
 class LolUser(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -1548,7 +1551,7 @@ class LolUser(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt
+# vip=tgt, "online_onstart"="True"/"False"
 class SteamUser(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -1588,10 +1591,10 @@ class SteamUser(SubMonitor):
                     pushtext_body = ""
                     for key in user_datadic_new:
                         if key not in self.userdata_dic:
-                            pushtext_body += "新键：%s\n值：%s\n\n" % (key, str(user_datadic_new[key]))
+                            pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
                         elif self.userdata_dic[key] != user_datadic_new[key]:
-                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n\n" % (
+                            pushtext_body += "键：%s\n原值：%s\n现值：%s\n" % (
                                 key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
 
@@ -1608,6 +1611,95 @@ class SteamUser(SubMonitor):
             else:
                 printlog('[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
                 writelog(self.logpath, '[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
+            time.sleep(self.interval)
+
+    def push(self, pushtext):
+        pushcolor_vipdic = getpushcolordic(self.tgt, self.vip_dic)
+        pushcolor_dic = pushcolor_vipdic
+
+        if pushcolor_dic:
+            pushall(pushtext, pushcolor_dic, self.push_list)
+            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+
+# vip=tgt, "online_onstart"="True"/"False"
+class OsuUser(SubMonitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s.txt' % (self.__class__.__name__, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+
+        self.is_firstrun = True
+        self.userdata_dic = {}
+        self.lastgameid = 0
+        try:
+            getattr(self, "online_onstart")
+        except:
+            self.online_onstart = "True"
+
+    def run(self):
+        while not self.stop_now:
+            # 获取用户信息
+            user_datadic_new = getosuuser(self.tgt, self.cookies, self.proxy)
+            if isinstance(user_datadic_new, dict):
+                if self.is_firstrun:
+                    # 首次在线即推送
+                    if self.online_onstart == "True" and 'is_online' in user_datadic_new and user_datadic_new['is_online'] == 'true':
+                        pushtext = "【%s %s 当前在线】\n时间：%s\n网址：https://osu.ppy.sh/users/%s" % (
+                            self.__class__.__name__, self.tgt_name,
+                            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime(
+                                "%Y-%m-%d %H:%M:%S %Z"), self.tgt)
+                        self.push(pushtext)
+
+                    self.userdata_dic = user_datadic_new
+                    try:
+                        self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+                    except:
+                        pass
+                    writelog(self.logpath,
+                             '[Info] "%s" getosuuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                    self.is_firstrun = False
+                else:
+                    pushtext_body = ""
+
+                    for key in user_datadic_new:
+                        # 比赛结果 直接推送
+                        if key == 'user_gamedic':
+                            for gameid in user_datadic_new['user_gamedic']:
+                                if gameid > self.lastgameid:
+                                    pushtext = "【%s %s 比赛统计】\n类型：%s\n结果：%s\n时间：%s\n网址：https://osu.ppy.sh/users/%s" % (
+                                        self.__class__.__name__, self.tgt_name,
+                                        user_datadic_new['user_gamedic'][gameid]['game_type'],
+                                        user_datadic_new['user_gamedic'][gameid]['game_result'],
+                                        datetime.datetime.utcfromtimestamp(user_datadic_new['user_gamedic'][gameid]['game_timestamp']).replace(
+                                            tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"), self.tgt)
+                                    self.push(pushtext)
+                            try:
+                                self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
+                            except:
+                                pass
+                        #其他 整合推送
+                        else:
+                            if key not in self.userdata_dic:
+                                pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
+                                self.userdata_dic[key] = user_datadic_new[key]
+                            elif self.userdata_dic[key] != user_datadic_new[key]:
+                                pushtext_body += "键：%s\n原值：%s\n现值：%s\n" % (
+                                    key, str(self.userdata_dic[key]), str(user_datadic_new[key]))
+                                self.userdata_dic[key] = user_datadic_new[key]
+
+                    if pushtext_body:
+                        pushtext = "【%s %s 数据改变】\n%s\n时间：%s网址：https://osu.ppy.sh/users/%s" % (
+                            self.__class__.__name__, self.tgt_name, pushtext_body,
+                            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"), self.tgt)
+                        self.push(pushtext)
+                writelog(self.logpath, '[Success] "%s" getosuuser %s' % (self.name, self.tgt))
+            else:
+                printlog('[Error] "%s" getosuuser %s' % (self.name, self.tgt))
+                writelog(self.logpath, '[Error] "%s" getosuuser %s' % (self.name, self.tgt))
             time.sleep(self.interval)
 
     def push(self, pushtext):
@@ -1853,7 +1945,6 @@ def getyoutubetoken(cookies, proxy):
         return False
 
 
-# note_id为整数
 def getyoutubenotedic(token, cookies, proxy):
     try:
         youtubenotedic = {}
@@ -1907,28 +1998,11 @@ def gettwitteruser(user_screenname, cookies, proxy):
                                 headers=headers, params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             user_data = response.json()['data']['user']
-            userdata_dic["user_id"] = user_data['id']
-            userdata_dic["user_restid"] = user_data['rest_id']
-            userdata_dic["user_name"] = user_data['legacy']['name']
-            userdata_dic["user_screenname"] = user_data['legacy']['screen_name']
-            userdata_dic["user_description"] = user_data['legacy']['description']
-            userdata_dic["user_entities"] = user_data['legacy']['entities']
-            userdata_dic["user_location"] = user_data['legacy']['location']
-            userdata_dic["user_profileimage"] = user_data['legacy']['profile_image_url_https']
-            userdata_dic["user_bannerimage"] = user_data['legacy']['profile_banner_url']
-            userdata_dic["user_twitcount"] = user_data['legacy']['statuses_count']
-            userdata_dic["user_mediacount"] = user_data['legacy']['media_count']
-            userdata_dic["user_favouritescount"] = user_data['legacy']['favourites_count']
-            userdata_dic["user_friendscount"] = user_data['legacy']['friends_count']
-            userdata_dic["user_wantretweet"] = user_data['legacy']['want_retweets']
-            userdata_dic["user_protected"] = user_data['legacy']['protected']
-            userdata_dic["user_candm"] = user_data['legacy']['can_dm']
-            userdata_dic["user_canmediatag"] = user_data['legacy']['can_media_tag']
-            userdata_dic["user_advertiseraccounttype"] = user_data['legacy']['advertiser_account_type']
-            userdata_dic["user_pinnedtweetidsstr"] = user_data['legacy']['pinned_tweet_ids_str']
-            userdata_dic["user_profileinterstitialtype"] = user_data['legacy']['profile_interstitial_type']
-            userdata_dic["user_verified"] = user_data['legacy']['verified']
-            userdata_dic["user_muting"] = user_data['legacy']['muting']
+            userdata_dic = user_data
+            for key in user_data['legacy']:
+                userdata_dic[key] = user_data['legacy'][key]
+            userdata_dic.pop('legacy')
+            
             return userdata_dic
         else:
             return False
@@ -1936,7 +2010,6 @@ def gettwitteruser(user_screenname, cookies, proxy):
         return False
 
 
-# tweet_id为整数
 def gettwittertweetdic(user_restid, cookies, proxy):
     try:
         tweet_dic = {}
@@ -2020,7 +2093,6 @@ def gettwittertweetdic(user_restid, cookies, proxy):
         return False
 
 
-# tweet_id为整数
 def gettwittersearchdic(qword, cookies, proxy):
     try:
         tweet_dic = {}
@@ -2173,15 +2245,12 @@ def getfanboxuser(user_id, proxy):
         response = requests.get("https://api.fanbox.cc/creator.get?creatorId=%s" % user_id, headers=headers,
                                 timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
-            userdata_dic["user_id"] = response.json()["body"]["user"]["userId"]
-            userdata_dic["user_name"] = response.json()["body"]["user"]["name"]
-            userdata_dic["user_icon"] = response.json()["body"]["user"]["iconUrl"]
-            userdata_dic["description"] = response.json()["body"]["description"]
-            userdata_dic["coverimage"] = response.json()["body"]["coverImageUrl"]
-            userdata_dic["profilelinks"] = response.json()["body"]["profileLinks"]
-            userdata_dic["hasboothshop"] = response.json()["body"]["hasBoothShop"]
-            userdata_dic["hasadultcontent"] = response.json()["body"]["hasAdultContent"]
-            userdata_dic["isstopped"] = response.json()["body"]["isStopped"]
+            user_data = response.json()["body"]
+            userdata_dic = user_data
+            for key in user_data['user']:
+                userdata_dic[key] = user_data['user'][key]
+            userdata_dic.pop('user')
+
             return userdata_dic
         else:
             return False
@@ -2339,8 +2408,7 @@ def renewloluser(user_id, user_region, proxy):
 def getsteamuser(user_id, cookies, proxy):
     try:
         userdata_dic = {}
-        response = requests.get("https://steamcommunity.com/profiles/%s" % user_id, cookies=cookies, timeout=(3, 7),
-                                proxies=proxy)
+        response = requests.get("https://steamcommunity.com/profiles/%s" % user_id, cookies=cookies, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
             soup = BeautifulSoup(response.text, 'lxml')
             if not soup.find(class_="profile_private_info"):
@@ -2350,6 +2418,39 @@ def getsteamuser(user_id, cookies, proxy):
                 for item_count in soup.find_all(class_="profile_count_link ellipsis"):
                     userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
                         class_="profile_count_link_total").text.strip()
+            return userdata_dic
+        else:
+            return False
+    except:
+        return False
+
+
+def getosuuser(user_id, cookies, proxy):
+    try:
+        userdata_dic = {}
+        response = requests.get('https://osu.ppy.sh/users/%s' % user_id, cookies=cookies, timeout=(3, 7), proxies=proxy)
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.text, 'lxml')
+            user_data = json.loads(soup.find(attrs={'id':'json-user','type':'application/json'}).text)
+            userdata_dic = user_data
+            for key in user_data['statistics']:
+                userdata_dic[key] = user_data['statistics'][key]
+            userdata_dic.pop('statistics')
+            
+            # 比赛结果
+            userdata_dic["user_gamedic"] = {}
+            gamelist = json.loads(soup.find(attrs={'id':'json-extras','type':'application/json'}).text)['recentActivity']
+            for gameitem in gamelist:
+                game_id = gameitem['id']
+                game_timestamp = int(
+                        datetime.datetime.strptime(gameitem['createdAt'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                game_type = gameitem['type']
+                try:
+                    game_result = "%s - %s(%s) - %s(https://osu.ppy.sh/%s)" % (gameitem['mode'], gameitem['scoreRank'], gameitem['rank'],  gameitem['beatmap']['title'], gameitem['beatmap']['url'])
+                except:
+                    game_result = ''
+                userdata_dic["user_gamedic"][game_id] = {"game_timestamp": game_timestamp, "game_type": game_type,
+                                                            "game_result": game_result}
             return userdata_dic
         else:
             return False
