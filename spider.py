@@ -895,7 +895,7 @@ class TwitcastChat(SubMonitor):
 
     def push(self, chat):
         writelog(self.chatpath, "%s\t%s\t%s\t%s" % (
-            chat["chat_timestamp"], chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
+            chat["chat_timestamp_float"], chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
         pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
@@ -906,7 +906,7 @@ class TwitcastChat(SubMonitor):
 
             pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n时间：%s\n网址：https://twitcasting.tv/%s" % (
                 self.__class__.__name__, self.tgt_name, chat["chat_name"], chat["chat_screenname"], chat["chat_text"],
-                datetime.datetime.utcfromtimestamp(int(chat["chat_timestamp"])).replace(
+                datetime.datetime.utcfromtimestamp(int(chat["chat_timestamp_float"])).replace(
                     tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
                 self.tgt_channel)
             pushall(pushtext, pushcolor_dic, self.push_list)
