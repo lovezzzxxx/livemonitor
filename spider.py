@@ -1521,10 +1521,9 @@ class LolUser(SubMonitor):
                                     self.push(pushtext)
                                 else:
                                     pushtext = "【%s %s 比赛结束】\n时间：%s\n网址：https://%s.op.gg/summoner/userName=%s&l=en_US" % (
-                                        self.__class__.__name__, self.tgt_name, self.tgt_region,
+                                        self.__class__.__name__, self.tgt_name,
                                         datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime(
-                                            "%Y-%m-%d %H:%M:%S %Z"),
-                                        self.tgt)
+                                            "%Y-%m-%d %H:%M:%S %Z"), self.tgt_region, self.tgt)
                                     self.push(pushtext)
                             self.userdata_dic[key] = user_datadic_new[key]
                         # 其他 不推送
