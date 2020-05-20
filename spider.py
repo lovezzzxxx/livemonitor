@@ -550,7 +550,7 @@ class TwitterUser(SubMonitor):
                             pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
                         elif self.userdata_dic[key] != user_datadic_new[key]:
-                            if self.no_increase == "True" and (key == "user_twitcount" or key == "user_mediacount"):
+                            if self.no_increase == "True" and (key == "statuses_count" or key == "media_count"):
                                 if self.userdata_dic[key] < user_datadic_new[key]:
                                     self.userdata_dic[key] = user_datadic_new[key]
                                     continue
@@ -2008,7 +2008,18 @@ def gettwitteruser(user_screenname, cookies, proxy):
             for key in user_data['legacy']:
                 userdata_dic[key] = user_data['legacy'][key]
             userdata_dic.pop('legacy')
-            
+
+            userdata_dic.pop('followers_count')
+            userdata_dic.pop('normal_followers_count')
+            userdata_dic.pop('listed_count')
+            userdata_dic.pop('notifications')
+            userdata_dic.pop('muting')
+            userdata_dic.pop('blocked_by')
+            userdata_dic.pop('blocking')
+            userdata_dic.pop('follow_request_sent')
+            userdata_dic.pop('followed_by')
+            userdata_dic.pop('following')
+
             return userdata_dic
         else:
             return False
@@ -2257,6 +2268,9 @@ def getfanboxuser(user_id, proxy):
                 userdata_dic[key] = user_data['user'][key]
             userdata_dic.pop('user')
 
+            userdata_dic.pop('isFollowed')
+            userdata_dic.pop('isSupported')
+
             return userdata_dic
         else:
             return False
@@ -2445,7 +2459,9 @@ def getosuuser(user_id, cookies, proxy):
             for key in user_data['statistics']:
                 userdata_dic[key] = user_data['statistics'][key]
             userdata_dic.pop('statistics')
-            
+
+            userdata_dic.pop('follower_count')
+
             # 比赛结果
             userdata_dic["user_gamedic"] = {}
             gamelist = json.loads(soup.find(attrs={'id':'json-extras','type':'application/json'}).text)['recentActivity']
