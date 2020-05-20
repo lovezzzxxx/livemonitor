@@ -2282,8 +2282,11 @@ def getfanboxpostdic(user_id, cookies, proxy):
                 try:
                     post_id = post['id']
                     post_title = post['title']
-                    post_publishtimestamp = int(
-                        datetime.datetime.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                    # python3.6无法识别+00:00格式，只能识别+0000格式
+                    try:
+                        post_publishtimestamp = int(datetime.datetime.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                    except:
+                        post_publishtimestamp = int(datetime.datetime.strptime(post['publishedDatetime'].replace(':', ''), "%Y-%m-%dT%H%M%S%z").timestamp())
                     post_type = post['type']
                     post_text = ""
                     if isinstance(post['body'], dict):
@@ -2442,8 +2445,11 @@ def getosuuser(user_id, cookies, proxy):
             gamelist = json.loads(soup.find(attrs={'id':'json-extras','type':'application/json'}).text)['recentActivity']
             for gameitem in gamelist:
                 game_id = gameitem['id']
-                game_timestamp = int(
-                        datetime.datetime.strptime(gameitem['createdAt'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                # python3.6无法识别+00:00格式，只能识别+0000格式
+                try:
+                    game_timestamp = int(datetime.datetime.strptime(gameitem['createdAt'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+                except:
+                    game_timestamp = int(datetime.datetime.strptime(gameitem['createdAt'].replace(':', ''), "%Y-%m-%dT%H%M%S%z").timestamp())
                 game_type = gameitem['type']
                 try:
                     game_result = "%s - %s(%s) - %s(https://osu.ppy.sh/%s)" % (gameitem['mode'], gameitem['scoreRank'], gameitem['rank'],  gameitem['beatmap']['title'], gameitem['beatmap']['url'])
