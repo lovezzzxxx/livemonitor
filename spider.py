@@ -293,6 +293,8 @@ class YoutubeChat(SubMonitor):
             os.mkdir('./log/%s' % self.__class__.__name__)
         if not os.path.exists('./log/%s/%s' % (self.__class__.__name__, self.tgt_name)):
             os.mkdir('./log/%s/%s' % (self.__class__.__name__, self.tgt_name))
+        self.chatpath = './log/%s/%s/%s_chat.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
 
         # continuation为字符
         self.continuation = False
@@ -346,7 +348,7 @@ class YoutubeChat(SubMonitor):
             time.sleep(self.interval)
 
     def push(self, chat):
-        writelog(self.logpath, "%s\t%s\t%s\t%s\t%s" % (
+        writelog(self.chatpath, "%s\t%s\t%s\t%s\t%s" % (
             chat["chat_timestamp_float"], chat["chat_username"], chat["chat_userchannel"], chat["chat_type"],
             chat["chat_text"]))
 
@@ -847,6 +849,8 @@ class TwitcastChat(SubMonitor):
             os.mkdir('./log/%s' % self.__class__.__name__)
         if not os.path.exists('./log/%s/%s' % (self.__class__.__name__, self.tgt_name)):
             os.mkdir('./log/%s/%s' % (self.__class__.__name__, self.tgt_name))
+        self.chatpath = './log/%s/%s/%s_chat.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
 
         self.chat_id_old = 0
         self.pushpunish = {}
@@ -890,7 +894,7 @@ class TwitcastChat(SubMonitor):
             time.sleep(self.interval)
 
     def push(self, chat):
-        writelog(self.logpath, "%s\t%s\t%s\t%s" % (
+        writelog(self.chatpath, "%s\t%s\t%s\t%s" % (
             chat["chat_timestamp"], chat["chat_name"], chat["chat_screenname"], chat["chat_text"]))
 
         pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
@@ -1164,6 +1168,8 @@ class BilibiliChat(SubMonitor):
             os.mkdir('./log/%s' % self.__class__.__name__)
         if not os.path.exists('./log/%s/%s' % (self.__class__.__name__, self.tgt_name)):
             os.mkdir('./log/%s/%s' % (self.__class__.__name__, self.tgt_name))
+        self.chatpath = './log/%s/%s/%s_chat.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
 
         try:
             getattr(self, "simple_mode")
@@ -1362,7 +1368,7 @@ class BilibiliChat(SubMonitor):
                     writelog(self.logpath, '[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
 
     def push(self, chat):
-        writelog(self.logpath,
+        writelog(self.chatpath,
                  "%s\t%s\t%s\t%s\t%s" % (
                      chat["chat_timestamp_float"], chat["chat_username"], chat["chat_userid"], chat["chat_type"],
                      chat["chat_text"]))
