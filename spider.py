@@ -371,7 +371,7 @@ class YoutubeChat(SubMonitor):
     def punish(self, pushcolor_dic):
         # 推送惩罚恢复
         if self.regen != "False":
-            time_now = float(datetime.datetime.utcnow().timestamp())
+            time_now = float(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
             regen_amt = int(int((time_now - self.regen_time) / float(self.regen)) * float(self.regen_amount))
             if regen_amt:
                 self.regen_time = time_now
@@ -915,7 +915,7 @@ class TwitcastChat(SubMonitor):
 
     def punish(self, pushcolor_dic):
         if self.regen != "False":
-            time_now = float(datetime.datetime.utcnow().timestamp())
+            time_now = float(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
             regen_amt = int(int((time_now - self.regen_time) / float(self.regen)) * float(self.regen_amount))
             if regen_amt:
                 self.regen_time = time_now
@@ -1414,7 +1414,7 @@ class BilibiliChat(SubMonitor):
 
     def punish(self, pushcolor_dic):
         if self.regen != "False":
-            time_now = float(datetime.datetime.utcnow().timestamp())
+            time_now = float(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
             regen_amt = int(int((time_now - self.regen_time) / float(self.regen)) * float(self.regen_amount))
             if regen_amt:
                 self.regen_time = time_now
@@ -1532,7 +1532,7 @@ class LolUser(SubMonitor):
                 writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
 
                 # 更新信息 最短间隔120秒
-                if int(datetime.datetime.utcnow().timestamp()) - self.userdata_dic['renew_timestamp'] > 120:
+                if int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp()) - self.userdata_dic['renew_timestamp'] > 120:
                     renew = renewloluser(self.userdata_dic['user_id'], self.tgt_region, self.proxy)
                     if renew:
                         writelog(self.logpath,
@@ -1731,7 +1731,7 @@ def getyoutubevideodic(user_id, proxy):
                     video_title = video.h3.a["title"]
                     if len(video.find(class_="yt-lockup-meta-info").find_all("li")) > 1:
                         video_type, video_status = "视频", "上传"
-                        video_timestamp = int(datetime.datetime.utcnow().timestamp())
+                        video_timestamp = int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
                     else:
                         timestamp = video.find(attrs={"data-timestamp": True})
                         if video.find(class_="accessible-description"):
@@ -1740,14 +1740,14 @@ def getyoutubevideodic(user_id, proxy):
                                 video_timestamp = timestamp["data-timestamp"]
                             else:
                                 video_type, video_status = "首播", "开始"
-                                video_timestamp = int(datetime.datetime.utcnow().timestamp())
+                                video_timestamp = int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
                         else:
                             if timestamp:
                                 video_type, video_status = "直播", "等待"
                                 video_timestamp = timestamp["data-timestamp"]
                             else:
                                 video_type, video_status = "直播", "开始"
-                                video_timestamp = int(datetime.datetime.utcnow().timestamp())
+                                video_timestamp = int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
                     videolist[video_id] = {"video_title": video_title, "video_type": video_type,
                                            "video_status": video_status, "video_timestamp": video_timestamp}
                 except:
@@ -2461,6 +2461,8 @@ def getosuuser(user_id, cookies, proxy):
 
             userdata_dic.pop('follower_count')
             userdata_dic.pop('rank')
+            userdata_dic.pop('rankHistory')
+            userdata_dic.pop('pp_rank')
 
             # 比赛结果
             userdata_dic["user_gamedic"] = {}
@@ -2619,7 +2621,7 @@ def writelog(logpath, text):
 
 
 def waittime(timestamp):
-    t = second_to_time(int(float(timestamp) - datetime.datetime.utcnow().timestamp()))
+    t = second_to_time(int(float(timestamp) - datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp()))
     return t
 
 
