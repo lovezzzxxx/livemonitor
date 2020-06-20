@@ -1783,7 +1783,7 @@ def getyoutubevideostatus(video_id, proxy):
 
             if script == "None":
                 video_status = "删除"
-            elif script.count('"isLiveNow"'):
+            elif script.count('"isLiveNow":'):
                 if script.count('"endTimestamp":'):
                     video_status = "结束"
                 elif script.count('"isLiveNow":true'):
