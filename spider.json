@@ -8,14 +8,14 @@
 		"Other": {"class": "Monitor", "target": "other", "target_name": "other", "config_name": "other"}
 	},
 	"youtube": {
-		"interval": 180,
+		"interval": 300,
 		"submonitor_dic": {
-			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60, "standby_chat": "True"},
-			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 60},
-			"YoutubeLive 神楽めあ子频道": {"class": "YoutubeLive", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
-			"YoutubeCom 神楽めあ子频道": {"class": "YoutubeCom", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config", "interval": 60},
-			"YoutubeLive 愛繋璃": {"class": "YoutubeLive", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config", "interval": 60},
-			"YoutubeCom 愛繋璃": {"class": "YoutubeCom", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config", "interval": 60},
+			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 180, "standby_chat": "True"},
+			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 180},
+			"YoutubeLive 神楽めあ子频道": {"class": "YoutubeLive", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config"},
+			"YoutubeCom 神楽めあ子频道": {"class": "YoutubeCom", "target": "UCu5eCcfs67GkeCFbhsMrEjA", "target_name": "神楽めあ子频道", "config_name": "youtube_config"},
+			"YoutubeLive 愛繋璃": {"class": "YoutubeLive", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config"},
+			"YoutubeCom 愛繋璃": {"class": "YoutubeCom", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config"},
 			"YoutubeLive 湊あくあ": {"class": "YoutubeLive", "target": "UC1opHUrw8rvnsadT-iGp7Cg", "target_name": "湊あくあ", "config_name": "youtube_config"},
 			"YoutubeLive 如月こより": {"class": "YoutubeLive", "target": "UCWmJy4zKFf9Y_UQdS5sWuUg", "target_name": "如月こより", "config_name": "youtube_config"},
 			"YoutubeLive 犬山たまき": {"class": "YoutubeLive", "target": "UC8NZiqKx6fsDT3AVcMiVFyA", "target_name": "犬山たまき", "config_name": "youtube_config"},
