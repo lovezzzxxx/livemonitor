@@ -1761,29 +1761,38 @@ def getyoutubevideodic(user_id, proxy):
 
 
 def getyoutubevideostatus(video_id, proxy):
+    '''
+    删除:
+
+    视频上传:"isLiveContent":false
+
+    直播等待:"isLiveContent":true,"isLiveNow":false
+    直播开始:"isLiveContent":true,"isLiveNow":true
+    直播结束:"isLiveContent":true,"isLiveNow":false,"endTimestamp":
+
+    首播等待:"isLiveContent":false,"isLiveNow":false
+    首播开始:"isLiveContent":false,"isLiveNow":true
+    首播结束:"isLiveContent":false,"isLiveNow":false,"endTimestamp":
+    '''
     try:
-        url = 'https://www.youtube.com/heartbeat?video_id=%s' % video_id
-        response = requests.get(url, stream=True, timeout=(3, 7), proxies=proxy)
+        url = 'https://www.youtube.com/watch?v=%s' % video_id
+        response = requests.get(url, timeout=(3, 7), proxies=proxy)
         if response.status_code == 200:
-            try:
-                if response.json()["stop_heartbeat"] == "1":
-                    video_status = "上传"
-                    return video_status
-                else:
-                    # 测试中stop_heartbeat只在类型为视频的情况下出现且值为1
-                    return False
-            except:
-                if response.json()["status"] == "stop":
-                    video_status = "删除"
-                elif response.json()["status"] == "ok":
-                    video_status = "开始"
-                elif "liveStreamability" not in response.json() or "displayEndscreen" in \
-                        response.json()["liveStreamability"]["liveStreamabilityRenderer"]:
+            soup = BeautifulSoup(response.text, 'lxml')
+            script = eval('"""{}"""'.format(soup.find(string=re.compile(r'\\"isLiveContent\\":'))))
+
+            if script == "None":
+                video_status = "删除"
+            elif script.count('"isLiveNow"'):
+                if script.count('"endTimestamp":'):
                     video_status = "结束"
+                elif script.count('"isLiveNow":true'):
+                    video_status = "开始"
                 else:
                     video_status = "等待"
-                # 不可能为空 不可以为空
-                return video_status
+            else:
+                video_status = "上传"
+            return video_status
         else:
             return False
     except:
