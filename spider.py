@@ -209,8 +209,8 @@ class YoutubeLive(Monitor):
                             "video_status"] == "等待" and self.standby_chat_onstart == "True" or videodic_new[video_id][
                             "video_status"] == "开始":
                             self.push(video_id)
-                writelog(self.logpath,
-                         '[Info] "%s" getyoutubevideodic %s firstresult\n%s' % (self.name, self.tgt, videodic_new))
+                if self.is_firstrun:
+                    writelog(self.logpath, '[Info] "%s" getyoutubevideodic %s firstresult\n%s' % (self.name, self.tgt, videodic_new))
                 self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
             else:
@@ -425,8 +425,8 @@ class YoutubeCom(SubMonitor):
                         self.postlist.append(post_id)
                         if not self.is_firstrun:
                             self.push(post_id, postdic_new)
-                writelog(self.logpath,
-                         '[Info] "%s" getyoutubepostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
+                if self.is_firstrun:
+                    writelog(self.logpath, '[Info] "%s" getyoutubepostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
                 writelog(self.logpath, '[Success] "%s" getyoutubepostdic %s' % (self.name, self.tgt))
                 self.is_firstrun = False
             else:
@@ -1020,8 +1020,8 @@ class FanboxPost(SubMonitor):
                         self.postlist.append(post_id)
                         if not self.is_firstrun:
                             self.push(post_id, postdic_new)
-                writelog(self.logpath,
-                         '[Info] "%s" getfanboxpostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
+                if self.is_firstrun:
+                    writelog(self.logpath, '[Info] "%s" getfanboxpostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
                 writelog(self.logpath, '[Success] "%s" getfanboxpostdic %s' % (self.name, self.tgt))
                 self.is_firstrun = False
             else:
