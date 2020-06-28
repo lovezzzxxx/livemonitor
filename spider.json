@@ -29,7 +29,7 @@
 			"YoutubeLive けんき": {"class": "YoutubeLive", "target": "UCNicQVuAQJYlCQKEw1TKn1A", "target_name": "けんき", "config_name": "youtube_config"}
 		},
 		"youtube_config": {
-			"interval": 180,
+			"interval": 300,
 			"vip_dic": {
 				"UCWCc8tO-uUl_7SJXIKJACMw": {"mea": 10},
 				"UCu5eCcfs67GkeCFbhsMrEjA": {"mea": 10},
