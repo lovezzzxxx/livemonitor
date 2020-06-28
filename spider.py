@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import os
-import time
-import datetime
 import copy
+import datetime
+import json
+import os
 import re
-import random
 import struct
 import threading
-import websocket
-import asyncio
-import requests
-import json
+import time
 import zlib
-from bs4 import BeautifulSoup
 from urllib.parse import quote, unquote
+
+import requests
+import websocket
+from bs4 import BeautifulSoup
 
 
 # 仅从cfg和cfg_mod中获取参数，不会启动子监视器
@@ -68,10 +67,7 @@ class Monitor(SubMonitor):
     # 重设submonitorconfig名字并初始化
     def submonitorconfig_setname(self, submonitor_config_name):
         self.submonitor_config_name = submonitor_config_name
-        try:
-            submonitor_config = getattr(self, submonitor_config_name)
-        except:
-            submonitor_config = {"submonitor_dic": {}}
+        submonitor_config = getattr(self, submonitor_config_name, {"submonitor_dic": {}})
         setattr(self, self.submonitor_config_name, submonitor_config)
 
     # 向submonitorconfig添加预设的config
@@ -167,41 +163,23 @@ class YoutubeLive(Monitor):
         # video_id为字符
         self.videodic = {}
         # 是否检测待机直播间的弹幕
-        try:
-            getattr(self, "standby_chat")
-        except:
-            self.standby_chat = "False"
+        self.standby_chat = getattr(self, "standby_chat", "False")
         # 是否检测在第一次检测时已开启的待机直播间的弹幕
-        try:
-            getattr(self, "standby_chat_onstart")
-        except:
-            self.standby_chat_onstart = "False"
+        self.standby_chat_onstart = getattr(self, "standby_chat_onstart", "False")
         # 不记录弹幕
-        try:
-            getattr(self, "no_chat")
-        except:
-            self.no_chat = "False"
+        self.no_chat = getattr(self, "no_chat", "False")
         # 需要推送的情况，其中等待|开始|结束是直播和首播才有的情况，上传是视频才有的情况，删除则都存在
-        try:
-            getattr(self, "status_push")
-        except:
-            self.status_push = "等待|开始|结束|上传|删除"
+        self.status_push = getattr(self, "status_push", "等待|开始|结束|上传|删除")
         # 推送惩罚恢复间隔
-        try:
-            getattr(self, "regen")
-        except:
-            self.regen = "False"
+        self.regen = getattr(self, "regen", "False")
         # 每次推送惩罚恢复量
-        try:
-            getattr(self, "regen_amount")
-        except:
-            self.regen_amount = 1
+        self.regen_amount = getattr(self, "regen_amount", 1)
 
     def run(self):
         while not self.stop_now:
             # 更新视频列表
-            videodic_new = getyoutubevideodic(self.tgt, self.proxy)
-            if isinstance(videodic_new, dict):
+            try:
+                videodic_new = getyoutubevideodic(self.tgt, self.proxy)
                 for video_id in videodic_new:
                     if video_id not in self.videodic:
                         self.videodic[video_id] = videodic_new[video_id]
@@ -210,37 +188,38 @@ class YoutubeLive(Monitor):
                             "video_status"] == "开始":
                             self.push(video_id)
                 if self.is_firstrun:
-                    writelog(self.logpath, '[Info] "%s" getyoutubevideodic %s firstresult\n%s' % (self.name, self.tgt, videodic_new))
-                self.is_firstrun = False
+                    writelog(self.logpath,
+                             '[Info] "%s" getyoutubevideodic %s: %s' % (self.name, self.tgt, videodic_new))
+                    self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getyoutubevideodic %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getyoutubevideodic %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getyoutubevideodic %s: %s' % (self.name, self.tgt, e))
 
             # 更新视频状态
             for video_id in self.videodic:
                 if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "开始":
-                    video_status = getyoutubevideostatus(video_id, self.proxy)
-                    if video_status:
+                    try:
+                        video_status = getyoutubevideostatus(video_id, self.proxy)
                         if self.videodic[video_id]["video_status"] != video_status:
                             self.videodic[video_id]["video_status"] = video_status
                             self.push(video_id)
                         writelog(self.logpath, '[Success] "%s" getyoutubevideostatus %s' % (self.name, video_id))
-                    else:
-                        printlog("[Error] %s getvideostatus %s" % (self.name, video_id))
-                        writelog(self.logpath, '[Error] "%s" getyoutubevideostatus %s' % (self.name, video_id))
+                    except Exception as e:
+                        printlog("[Error] %s getvideostatus %s: %s" % (self.name, video_id, e))
+                        writelog(self.logpath, '[Error] "%s" getyoutubevideostatus %s: %s' % (self.name, video_id, e))
             time.sleep(self.interval)
 
     def push(self, video_id):
         if self.status_push.count(self.videodic[video_id]["video_status"]):
             # 获取视频简介
-            video_description = getyoutubevideodescription(video_id, self.proxy)
-            if isinstance(video_description, str):
+            try:
+                video_description = getyoutubevideodescription(video_id, self.proxy)
                 writelog(self.logpath,
                          '[Success] "%s" getyoutubevideodescription %s' % (self.name, video_id))
-            else:
-                printlog('[Error] "%s" getyoutubevideodescription %s' % (self.name, video_id))
-                writelog(self.logpath, '[Error] "%s" getyoutubevideodescription %s' % (self.name, video_id))
+            except Exception as e:
+                printlog('[Error] "%s" getyoutubevideodescription %s: %s' % (self.name, video_id, e))
+                writelog(self.logpath, '[Error] "%s" getyoutubevideodescription %s: %s' % (self.name, video_id, e))
                 video_description = ""
 
             # 计算推送力度
@@ -300,36 +279,29 @@ class YoutubeChat(SubMonitor):
         self.continuation = False
         self.pushpunish = {}
         self.regen_time = 0
-        try:
-            getattr(self, "tgt_channel")
-        except:
-            self.tgt_channel = ""
-        try:
-            getattr(self, "regen")
-        except:
-            self.regen = "False"
-        try:
-            getattr(self, "regen_amount")
-        except:
-            self.regen_amount = 1
+        self.tgt_channel = getattr(self, "tgt_channel", "")
+        self.regen = getattr(self, "regen", "False")
+        self.regen_amount = getattr(self, "regen_amount", 1)
 
     def run(self):
         while not self.stop_now:
             # 获取continuation
             if not self.continuation:
-                self.continuation = getyoutubechatcontinuation(self.tgt, self.proxy)
-                if self.continuation:
+                try:
+                    self.continuation = getyoutubechatcontinuation(self.tgt, self.proxy)
+                    writelog(self.logpath,
+                             '[Info] "%s" getyoutubechatcontinuation %s: %s' % (self.name, self.tgt, self.continuation))
                     writelog(self.logpath, '[Success] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
-                else:
-                    printlog('[Error] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
-                    writelog(self.logpath, '[Error] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
+                except Exception as e:
+                    printlog('[Error] "%s" getyoutubechatcontinuation %s: %s' % (self.name, self.tgt, e))
+                    writelog(self.logpath, '[Error] "%s" getyoutubechatcontinuation %s: %s' % (self.name, self.tgt, e))
                     time.sleep(5)
                     continue
 
             # 获取直播评论列表
             if self.continuation:
-                chatlist, self.continuation = getyoutubechatlist(self.continuation, self.proxy)
-                if isinstance(chatlist, list):
+                try:
+                    chatlist, self.continuation = getyoutubechatlist(self.continuation, self.proxy)
                     for chat in chatlist:
                         self.push(chat)
 
@@ -342,9 +314,9 @@ class YoutubeChat(SubMonitor):
                         self.interval = 2
                     if self.interval < 0.1:
                         self.interval = 0.1
-                else:
-                    printlog('[Error] "%s" getyoutubechatlist %s' % (self.name, self.continuation))
-                    writelog(self.logpath, '[Error] "%s" getyoutubechatlist %s' % (self.name, self.continuation))
+                except Exception as e:
+                    printlog('[Error] "%s" getyoutubechatlist %s: %s' % (self.name, self.continuation, e))
+                    writelog(self.logpath, '[Error] "%s" getyoutubechatlist %s: %s' % (self.name, self.continuation, e))
             time.sleep(self.interval)
 
     def push(self, chat):
@@ -418,20 +390,21 @@ class YoutubeCom(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取帖子列表
-            postdic_new = getyoutubepostdic(self.tgt, self.cookies, self.proxy)
-            if isinstance(postdic_new, dict):
+            try:
+                postdic_new = getyoutubepostdic(self.tgt, self.cookies, self.proxy)
                 for post_id in postdic_new:
                     if post_id not in self.postlist:
                         self.postlist.append(post_id)
                         if not self.is_firstrun:
                             self.push(post_id, postdic_new)
                 if self.is_firstrun:
-                    writelog(self.logpath, '[Info] "%s" getyoutubepostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
+                    writelog(self.logpath,
+                             '[Info] "%s" getyoutubepostdic %s: %s' % (self.name, self.tgt, postdic_new))
+                    self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getyoutubepostdic %s' % (self.name, self.tgt))
-                self.is_firstrun = False
-            else:
-                printlog('[Error] "%s" getyoutubepostdic %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getyoutubepostdic %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getyoutubepostdic %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getyoutubepostdic %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, post_id, postdic):
@@ -467,40 +440,36 @@ class YoutubeNote(SubMonitor):
         while not self.stop_now:
             # 获取token
             if not self.token:
-                self.token = getyoutubetoken(self.cookies, self.proxy)
-                if self.token:
+                try:
+                    self.token = getyoutubetoken(self.cookies, self.proxy)
+                    writelog(self.logpath, '[Info] "%s" getyoutubetoken %s: %s' % (self.name, self.tgt, self.token))
                     writelog(self.logpath, '[Success] "%s" getyoutubetoken %s' % (self.name, self.tgt))
-                else:
-                    printlog('[Error] "%s" getyoutubetoken %s' % (self.name, self.tgt))
-                    writelog(self.logpath, '[Error] "%s" getyoutubetoken %s' % (self.name, self.tgt))
+                except Exception as e:
+                    printlog('[Error] "%s" getyoutubetoken %s: %s' % (self.name, self.tgt, e))
+                    writelog(self.logpath, '[Error] "%s" getyoutubetoken %s: %s' % (self.name, self.tgt, e))
                     time.sleep(5)
                     continue
 
             # 获取订阅通知列表
             if self.token:
-                notedic_new = getyoutubenotedic(self.token, self.cookies, self.proxy)
-                if isinstance(notedic_new, dict):
-                    if notedic_new:
-                        if self.is_firstrun:
-                            try:
-                                self.note_id_old = sorted(notedic_new, reverse=True)[0]
-                            except:
-                                pass
-                            writelog(self.logpath, '[Info] "%s" getyoutubenotedic %s firstresult\n%s' % (
-                                self.name, self.tgt, notedic_new))
-                            self.is_firstrun = False
-                        else:
-                            for note_id in notedic_new:
-                                if note_id > self.note_id_old:
-                                    self.push(note_id, notedic_new)
-                            try:
-                                self.note_id_old = sorted(notedic_new, reverse=True)[0]
-                            except:
-                                pass
+                try:
+                    notedic_new = getyoutubenotedic(self.token, self.cookies, self.proxy)
+                    if self.is_firstrun:
+                        if notedic_new:
+                            self.note_id_old = sorted(notedic_new, reverse=True)[0]
+                        writelog(self.logpath,
+                                 '[Info] "%s" getyoutubenotedic %s: %s' % (self.name, self.tgt, notedic_new))
+                        self.is_firstrun = False
+                    else:
+                        for note_id in notedic_new:
+                            if note_id > self.note_id_old:
+                                self.push(note_id, notedic_new)
+                        if notedic_new:
+                            self.note_id_old = sorted(notedic_new, reverse=True)[0]
                     writelog(self.logpath, '[Success] "%s" getyoutubenotedic %s' % (self.name, self.tgt))
-                else:
-                    printlog('[Error] "%s" getyoutubenotedic %s' % (self.name, self.tgt))
-                    writelog(self.logpath, '[Error] "%s" getyoutubenotedic %s' % (self.name, self.tgt))
+                except Exception as e:
+                    printlog('[Error] "%s" getyoutubenotedic %s: %s' % (self.name, self.tgt, e))
+                    writelog(self.logpath, '[Error] "%s" getyoutubenotedic %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, note_id, notedic):
@@ -528,20 +497,17 @@ class TwitterUser(SubMonitor):
         self.is_firstrun = True
         self.userdata_dic = {}
         # 是否不推送推文和媒体数量的增加
-        try:
-            getattr(self, "no_increase")
-        except:
-            self.no_increase = "False"
+        self.no_increase = getattr(self, "no_increase", "False")
 
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = gettwitteruser(self.tgt, self.cookies, self.proxy)
-            if isinstance(user_datadic_new, dict):
+            try:
+                user_datadic_new = gettwitteruser(self.tgt, self.cookies, self.proxy)
                 if self.is_firstrun:
                     self.userdata_dic = user_datadic_new
                     writelog(self.logpath,
-                             '[Info] "%s" gettwitteruser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                             '[Info] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     pushtext_body = ""
@@ -561,9 +527,9 @@ class TwitterUser(SubMonitor):
                     if pushtext_body:
                         self.push(pushtext_body)
                 writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, pushtext_body):
@@ -598,41 +564,37 @@ class TwitterTweet(SubMonitor):
         while not self.stop_now:
             # 获取用户restid
             if not self.tgt_restid:
-                tgt_dic = gettwitteruser(self.tgt, self.cookies, self.proxy)
-                if isinstance(tgt_dic, dict):
+                try:
+                    tgt_dic = gettwitteruser(self.tgt, self.cookies, self.proxy)
                     self.tgt_restid = tgt_dic["rest_id"]
+                    writelog(self.logpath, '[Info] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, self.tgt_restid))
                     writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
-                else:
-                    printlog('[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
-                    writelog(self.logpath, '[Error] "%s" gettwitteruser %s' % (self.name, self.tgt))
+                except Exception as e:
+                    printlog('[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
+                    writelog(self.logpath, '[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
                     time.sleep(5)
                     continue
 
             # 获取推特列表
             if self.tgt_restid:
-                tweetdic_new = gettwittertweetdic(self.tgt_restid, self.cookies, self.proxy)
-                if isinstance(tweetdic_new, dict):
-                    if tweetdic_new:
-                        if self.is_firstrun:
-                            try:
-                                self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
-                            except:
-                                pass
-                            writelog(self.logpath, '[Info] "%s" gettwittertweetdic %s firstresult\n%s' % (
-                                self.name, self.tgt, tweetdic_new))
-                            self.is_firstrun = False
-                        else:
-                            for tweet_id in tweetdic_new:
-                                if tweet_id > self.tweet_id_old:
-                                    self.push(tweet_id, tweetdic_new)
-                            try:
-                                self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
-                            except:
-                                pass
+                try:
+                    tweetdic_new = gettwittertweetdic(self.tgt_restid, self.cookies, self.proxy)
+                    if self.is_firstrun:
+                        if tweetdic_new:
+                            self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
+                        writelog(self.logpath,
+                                 '[Info] "%s" gettwittertweetdic %s: %s' % (self.name, self.tgt, tweetdic_new))
+                        self.is_firstrun = False
+                    else:
+                        for tweet_id in tweetdic_new:
+                            if tweet_id > self.tweet_id_old:
+                                self.push(tweet_id, tweetdic_new)
+                        if tweetdic_new:
+                            self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
                     writelog(self.logpath, '[Success] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
-                else:
-                    printlog('[Error] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
-                    writelog(self.logpath, '[Error] "%s" gettwittertweetdic %s' % (self.name, self.tgt_restid))
+                except Exception as e:
+                    printlog('[Error] "%s" gettwittertweetdic %s: %s' % (self.name, self.tgt_restid, e))
+                    writelog(self.logpath, '[Error] "%s" gettwittertweetdic %s: %s' % (self.name, self.tgt_restid, e))
             time.sleep(self.interval)
 
     def push(self, tweet_id, tweetdic):
@@ -666,42 +628,31 @@ class TwitterSearch(SubMonitor):
         self.is_firstrun = True
         self.tweet_id_old = 0
         # 是否只推送有链接指向正在进行的youtube直播的推文
-        try:
-            getattr(self, "only_live")
-        except:
-            self.only_live = "False"
+        self.only_live = getattr(self, "only_live", "False")
         # 是否只推送有链接指向youtube直播或视频的推文
-        try:
-            getattr(self, "only_liveorvideo")
-        except:
-            self.only_liveorvideo = "False"
+        self.only_liveorvideo = getattr(self, "only_liveorvideo", "False")
 
     def run(self):
         while not self.stop_now:
             # 获取推特列表
-            tweetdic_new = gettwittersearchdic(self.tgt, self.cookies, self.proxy)
-            if isinstance(tweetdic_new, dict):
-                if tweetdic_new:
-                    if self.is_firstrun:
-                        try:
-                            self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
-                        except:
-                            pass
-                        writelog(self.logpath, '[Info] "%s" gettwittersearchdic %s firstresult\n%s' % (
-                            self.name, self.tgt, tweetdic_new))
-                        self.is_firstrun = False
-                    else:
-                        for tweet_id in tweetdic_new:
-                            if tweet_id > self.tweet_id_old:
-                                self.push(tweet_id, tweetdic_new)
-                        try:
-                            self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
-                        except:
-                            pass
+            try:
+                tweetdic_new = gettwittersearchdic(self.tgt, self.cookies, self.proxy)
+                if self.is_firstrun:
+                    if tweetdic_new:
+                        self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
+                    writelog(self.logpath,
+                             '[Info] "%s" gettwittersearchdic %s: %s' % (self.name, self.tgt, tweetdic_new))
+                    self.is_firstrun = False
+                else:
+                    for tweet_id in tweetdic_new:
+                        if tweet_id > self.tweet_id_old:
+                            self.push(tweet_id, tweetdic_new)
+                    if tweetdic_new:
+                        self.tweet_id_old = sorted(tweetdic_new, reverse=True)[0]
                 writelog(self.logpath, '[Success] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" gettwittersearchdic %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" gettwittersearchdic %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" gettwittersearchdic %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, tweet_id, tweetdic):
@@ -759,28 +710,16 @@ class TwitcastLive(Monitor):
         self.submonitorconfig_addconfig("twitcastchat_config", self.cfg)
 
         self.livedic = {"": {"live_status": "结束", "live_title": ""}}
-        try:
-            getattr(self, "no_chat")
-        except:
-            self.no_chat = "False"
-        try:
-            getattr(self, "status_push")
-        except:
-            self.status_push = "开始|结束"
-        try:
-            getattr(self, "regen")
-        except:
-            self.regen = "False"
-        try:
-            getattr(self, "regen_amount")
-        except:
-            self.regen_amount = 1
+        self.no_chat = getattr(self, "no_chat", "False")
+        self.status_push = getattr(self, "status_push", "开始|结束")
+        self.regen = getattr(self, "regen", "False")
+        self.regen_amount = getattr(self, "regen_amount", 1)
 
     def run(self):
         while not self.stop_now:
             # 获取直播状态
-            livedic_new = gettwitcastlive(self.tgt, self.proxy)
-            if isinstance(livedic_new, dict):
+            try:
+                livedic_new = gettwitcastlive(self.tgt, self.proxy)
                 for live_id in livedic_new:
                     if live_id not in self.livedic or livedic_new[live_id]["live_status"] == "结束":
                         for live_id_old in self.livedic:
@@ -796,9 +735,9 @@ class TwitcastLive(Monitor):
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
                 writelog(self.logpath, '[Success] "%s" gettwitcastlive %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" gettwitcastlive %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" gettwitcastlive %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" gettwitcastlive %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" gettwitcastlive %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, live_id):
@@ -855,24 +794,15 @@ class TwitcastChat(SubMonitor):
         self.chat_id_old = 0
         self.pushpunish = {}
         self.regen_time = 0
-        try:
-            getattr(self, "tgt_channel")
-        except:
-            self.tgt_channel = ""
-        try:
-            getattr(self, "regen")
-        except:
-            self.regen = "False"
-        try:
-            getattr(self, "regen_amount")
-        except:
-            self.regen_amount = 1
+        self.tgt_channel = getattr(self, "tgt_channel", "")
+        self.regen = getattr(self, "regen", "False")
+        self.regen_amount = getattr(self, "regen_amount", 1)
 
     def run(self):
         while not self.stop_now:
             # 获取直播评论列表
-            chatlist = gettwitcastchatlist(self.tgt, self.proxy)
-            if isinstance(chatlist, list):
+            try:
+                chatlist = gettwitcastchatlist(self.tgt, self.proxy)
                 for chat in chatlist:
                     # chatlist默认从小到大排列
                     if self.chat_id_old < chat['chat_id']:
@@ -888,9 +818,9 @@ class TwitcastChat(SubMonitor):
                     self.interval = 2
                 if self.interval < 0.1:
                     self.interval = 0.1
-            else:
-                printlog('[Error] "%s" gettwitcastchatlist %s' % (self.name, self.chat_id_old))
-                writelog(self.logpath, '[Error] "%s" gettwitcastchatlist %s' % (self.name, self.chat_id_old))
+            except Exception as e:
+                printlog('[Error] "%s" gettwitcastchatlist %s: %s' % (self.name, self.chat_id_old, e))
+                writelog(self.logpath, '[Error] "%s" gettwitcastchatlist %s: %s' % (self.name, self.chat_id_old, e))
             time.sleep(self.interval)
 
     def push(self, chat):
@@ -958,12 +888,12 @@ class FanboxUser(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = getfanboxuser(self.tgt, self.proxy)
-            if isinstance(user_datadic_new, dict):
+            try:
+                user_datadic_new = getfanboxuser(self.tgt, self.proxy)
                 if self.is_firstrun:
                     self.userdata_dic = user_datadic_new
                     writelog(self.logpath,
-                             '[Info] "%s" getfanboxuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                             '[Info] "%s" getfanboxuser %s: %s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     pushtext_body = ""
@@ -979,9 +909,9 @@ class FanboxUser(SubMonitor):
                     if pushtext_body:
                         self.push(pushtext_body)
                 writelog(self.logpath, '[Success] "%s" getfanboxuser %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getfanboxuser %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getfanboxuser %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getfanboxuser %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, pushtext_body):
@@ -1013,20 +943,20 @@ class FanboxPost(SubMonitor):
     def run(self):
         while not self.stop_now:
             # 获取帖子列表
-            postdic_new = getfanboxpostdic(self.tgt, self.cookies, self.proxy)
-            if isinstance(postdic_new, dict):
+            try:
+                postdic_new = getfanboxpostdic(self.tgt, self.cookies, self.proxy)
                 for post_id in postdic_new:
                     if post_id not in self.postlist:
                         self.postlist.append(post_id)
                         if not self.is_firstrun:
                             self.push(post_id, postdic_new)
                 if self.is_firstrun:
-                    writelog(self.logpath, '[Info] "%s" getfanboxpostdic %s firstresult\n%s' % (self.name, self.tgt, postdic_new))
+                    writelog(self.logpath, '[Info] "%s" getfanboxpostdic %s: %s' % (self.name, self.tgt, postdic_new))
+                    self.is_firstrun = False
                 writelog(self.logpath, '[Success] "%s" getfanboxpostdic %s' % (self.name, self.tgt))
-                self.is_firstrun = False
-            else:
-                printlog('[Error] "%s" getfanboxpostdic %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getfanboxpostdic %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getfanboxpostdic %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getfanboxpostdic %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, post_id, postdic):
@@ -1061,30 +991,12 @@ class BilibiliLive(Monitor):
         self.submonitorconfig_addconfig("bilibilichat_config", self.cfg)
 
         self.livedic = {"": {"live_status": "结束", "live_title": ""}}
-        try:
-            getattr(self, "offline_chat")
-        except:
-            self.offline_chat = "False"
-        try:
-            getattr(self, "simple_mode")
-        except:
-            self.simple_mode = "False"
-        try:
-            getattr(self, "no_chat")
-        except:
-            self.no_chat = "False"
-        try:
-            getattr(self, "status_push")
-        except:
-            self.status_push = "开始|结束"
-        try:
-            getattr(self, "regen")
-        except:
-            self.regen = "False"
-        try:
-            getattr(self, "regen_amount")
-        except:
-            self.regen_amount = 1
+        self.offline_chat = getattr(self, "offline_chat", "False")
+        self.simple_mode = getattr(self, "simple_mode", "False")
+        self.no_chat = getattr(self, "no_chat", "False")
+        self.status_push = getattr(self, "status_push", "开始|结束")
+        self.regen = getattr(self, "regen", "False")
+        self.regen_amount = getattr(self, "regen_amount", 1)
 
     def run(self):
         if self.offline_chat == "True" and self.no_chat != "True":
@@ -1098,8 +1010,8 @@ class BilibiliLive(Monitor):
 
         while not self.stop_now:
             # 获取直播状态
-            livedic_new = getbilibililivedic(self.tgt, self.proxy)
-            if isinstance(livedic_new, dict):
+            try:
+                livedic_new = getbilibililivedic(self.tgt, self.proxy)
                 for live_id in livedic_new:
                     if live_id not in self.livedic or livedic_new[live_id]["live_status"] == "结束":
                         for live_id_old in self.livedic:
@@ -1114,9 +1026,9 @@ class BilibiliLive(Monitor):
                         self.livedic[live_id] = livedic_new[live_id]
                         self.push(live_id)
                 writelog(self.logpath, '[Success] "%s" getbilibililivedic %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" getbilibililivedic %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getbilibililivedic %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getbilibililivedic %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getbilibililivedic %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, live_id):
@@ -1171,10 +1083,7 @@ class BilibiliChat(SubMonitor):
         self.chatpath = './log/%s/%s/%s_chat.txt' % (
             self.__class__.__name__, self.tgt_name, self.name)
 
-        try:
-            getattr(self, "simple_mode")
-        except:
-            self.simple_mode = "False"
+        self.simple_mode = getattr(self, "simple_mode", "False")
         if self.simple_mode != "False":
             self.pushcount = 0
             self.pushtext_old = ""
@@ -1198,19 +1107,13 @@ class BilibiliChat(SubMonitor):
         self.is_linked = False
         self.pushpunish = {}
         self.regen_time = 0
-        try:
-            getattr(self, "regen")
-        except:
-            self.regen = "False"
-        try:
-            getattr(self, "regen_amount")
-        except:
-            self.regen_amount = 1
+        self.regen = getattr(self, "regen", "False")
+        self.regen_amount = getattr(self, "regen_amount", 1)
 
     def getpacket(self, data, operation):
         '''
         packet_length, header_length, protocol_version, operation, sequence_id
-        
+
         HANDSHAKE=0, HANDSHAKE_REPLY = 1, HEARTBEAT = 2, HEARTBEAT_REPLY = 3, SEND_MSG = 4
         SEND_MSG_REPLY = 5, DISCONNECT_REPLY = 6, AUTH = 7, AUTH_REPLY = 8
         RAW = 9, PROTO_READY = 10, PROTO_FINISH = 11, CHANGE_ROOM = 12
@@ -1356,16 +1259,18 @@ class BilibiliChat(SubMonitor):
                 self.ws = websocket.WebSocketApp(host, on_open=self.on_open, on_message=self.on_message,
                                                  on_error=self.on_error, on_close=self.on_close)
                 self.ws.run_forever(http_proxy_host=self.proxyhost, http_proxy_port=self.proxyport)
+                time.sleep(1)
             else:
-                self.hostlist = getbilibilichathostlist(self.proxy)
-                self.hostcount = 0
-
-                if self.hostlist:
+                try:
+                    self.hostlist = getbilibilichathostlist(self.proxy)
+                    self.hostcount = 0
+                    writelog(self.logpath,
+                             '[Info] "%s" getbilibilichathostlist %s: %s' % (self.name, self.tgt, self.hostlist))
                     writelog(self.logpath, '[Success] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
-                else:
+                except Exception as e:
+                    printlog('[Error] "%s" getbilibilichathostlist %s: %s' % (self.name, self.tgt, e))
+                    writelog(self.logpath, '[Error] "%s" getbilibilichathostlist %s: %s' % (self.name, self.tgt, e))
                     time.sleep(5)
-                    printlog('[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
-                    writelog(self.logpath, '[Error] "%s" getbilibilichathostlist %s' % (self.name, self.tgt))
 
     def push(self, chat):
         writelog(self.chatpath,
@@ -1458,20 +1363,14 @@ class LolUser(SubMonitor):
         self.is_firstrun = True
         self.userdata_dic = {}
         self.lastgametimestamp = 0
-        try:
-            getattr(self, "tgt_region")
-        except:
-            self.tgt_region = "jp"
-        try:
-            getattr(self, "ingame_onstart")
-        except:
-            self.ingame_onstart = "True"
+        self.tgt_region = getattr(self, "tgt_region", "jp")
+        self.ingame_onstart = getattr(self, "ingame_onstart", "True")
 
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
-            if isinstance(user_datadic_new, dict):
+            try:
+                user_datadic_new = getloluser(self.tgt, self.tgt_region, self.proxy)
                 if self.is_firstrun:
                     # 首次在线即推送
                     if self.ingame_onstart == "True" and user_datadic_new['user_status'] == 'in_game':
@@ -1483,12 +1382,9 @@ class LolUser(SubMonitor):
                         self.push(pushtext)
 
                     self.userdata_dic = user_datadic_new
-                    try:
+                    if user_datadic_new['user_gamedic']:
                         self.lastgametimestamp = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
-                    except:
-                        pass
-                    writelog(self.logpath,
-                             '[Info] "%s" getloluser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                    writelog(self.logpath, '[Info] "%s" getloluser %s: %s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     for key in user_datadic_new:
@@ -1504,10 +1400,8 @@ class LolUser(SubMonitor):
                                             tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"),
                                         self.tgt_region, self.tgt)
                                     self.push(pushtext)
-                            try:
+                            if user_datadic_new['user_gamedic']:
                                 self.lastgametimestamp = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
-                            except:
-                                pass
                         # 当前游戏 整合推送
                         elif key == 'user_status':
                             if user_datadic_new[key] != self.userdata_dic[key]:
@@ -1532,18 +1426,19 @@ class LolUser(SubMonitor):
                 writelog(self.logpath, '[Success] "%s" getloluser %s' % (self.name, self.tgt))
 
                 # 更新信息 最短间隔120秒
-                if int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp()) - self.userdata_dic['renew_timestamp'] > 120:
-                    renew = renewloluser(self.userdata_dic['user_id'], self.tgt_region, self.proxy)
-                    if renew:
+                if int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp()) - \
+                        self.userdata_dic['renew_timestamp'] > 120:
+                    try:
+                        renewloluser(self.userdata_dic['user_id'], self.tgt_region, self.proxy)
                         writelog(self.logpath,
                                  '[Success] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
-                    else:
-                        printlog('[Error] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
+                    except Exception as e:
+                        printlog('[Error] "%s" renewloluser %s: %s' % (self.name, self.userdata_dic['user_id'], e))
                         writelog(self.logpath,
-                                 '[Error] "%s" renewloluser %s' % (self.name, self.userdata_dic['user_id']))
-            else:
-                printlog('[Error] "%s" getloluser %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getloluser %s' % (self.name, self.tgt))
+                                 '[Error] "%s" renewloluser %s: %s' % (self.name, self.userdata_dic['user_id'], e))
+            except Exception as e:
+                printlog('[Error] "%s" getloluser %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getloluser %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, pushtext):
@@ -1567,16 +1462,13 @@ class SteamUser(SubMonitor):
 
         self.is_firstrun = True
         self.userdata_dic = {}
-        try:
-            getattr(self, "online_onstart")
-        except:
-            self.online_onstart = "True"
+        self.online_onstart = getattr(self, "online_onstart", "True")
 
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = getsteamuser(self.tgt, self.cookies, self.proxy)
-            if isinstance(user_datadic_new, dict):
+            try:
+                user_datadic_new = getsteamuser(self.tgt, self.cookies, self.proxy)
                 if self.is_firstrun:
                     # 首次在线即推送
                     if self.online_onstart == "True" and 'user_status' in user_datadic_new and (
@@ -1589,8 +1481,7 @@ class SteamUser(SubMonitor):
                         self.push(pushtext)
 
                     self.userdata_dic = user_datadic_new
-                    writelog(self.logpath,
-                             '[Info] "%s" getsteamuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                    writelog(self.logpath, '[Info] "%s" getsteamuser %s: %s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     pushtext_body = ""
@@ -1607,15 +1498,12 @@ class SteamUser(SubMonitor):
                         pushtext = "【%s %s 数据改变】\n%s时间：%s\n网址：https://steamcommunity.com/profiles/%s" % (
                             self.__class__.__name__, self.tgt_name, pushtext_body,
                             datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime(
-                                "%Y-%m-%d %H:%M:%S %Z"),
-                            self.tgt)
+                                "%Y-%m-%d %H:%M:%S %Z"), self.tgt)
                         self.push(pushtext)
                 writelog(self.logpath, '[Success] "%s" getsteamuser %s' % (self.name, self.tgt))
-
-
-            else:
-                printlog('[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getsteamuser %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getsteamuser %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getsteamuser %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, pushtext):
@@ -1640,19 +1528,17 @@ class OsuUser(SubMonitor):
         self.is_firstrun = True
         self.userdata_dic = {}
         self.lastgameid = 0
-        try:
-            getattr(self, "online_onstart")
-        except:
-            self.online_onstart = "True"
+        self.online_onstart = getattr(self, "online_onstart", "True")
 
     def run(self):
         while not self.stop_now:
             # 获取用户信息
-            user_datadic_new = getosuuser(self.tgt, self.cookies, self.proxy)
-            if isinstance(user_datadic_new, dict):
+            try:
+                user_datadic_new = getosuuser(self.tgt, self.cookies, self.proxy)
                 if self.is_firstrun:
                     # 首次在线即推送
-                    if self.online_onstart == "True" and 'is_online' in user_datadic_new and user_datadic_new['is_online'] == 'true':
+                    if self.online_onstart == "True" and 'is_online' in user_datadic_new and user_datadic_new[
+                        'is_online'] == 'true':
                         pushtext = "【%s %s 当前在线】\n时间：%s\n网址：https://osu.ppy.sh/users/%s" % (
                             self.__class__.__name__, self.tgt_name,
                             datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime(
@@ -1660,16 +1546,12 @@ class OsuUser(SubMonitor):
                         self.push(pushtext)
 
                     self.userdata_dic = user_datadic_new
-                    try:
+                    if user_datadic_new['user_gamedic']:
                         self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
-                    except:
-                        pass
-                    writelog(self.logpath,
-                             '[Info] "%s" getosuuser %s firstresult\n%s' % (self.name, self.tgt, user_datadic_new))
+                    writelog(self.logpath, '[Info] "%s" getosuuser %s: %s' % (self.name, self.tgt, user_datadic_new))
                     self.is_firstrun = False
                 else:
                     pushtext_body = ""
-
                     for key in user_datadic_new:
                         # 比赛结果 直接推送
                         if key == 'user_gamedic':
@@ -1679,14 +1561,13 @@ class OsuUser(SubMonitor):
                                         self.__class__.__name__, self.tgt_name,
                                         user_datadic_new['user_gamedic'][gameid]['game_type'],
                                         user_datadic_new['user_gamedic'][gameid]['game_result'],
-                                        datetime.datetime.utcfromtimestamp(user_datadic_new['user_gamedic'][gameid]['game_timestamp']).replace(
+                                        datetime.datetime.utcfromtimestamp(
+                                            user_datadic_new['user_gamedic'][gameid]['game_timestamp']).replace(
                                             tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"), self.tgt)
                                     self.push(pushtext)
-                            try:
+                            if user_datadic_new['user_gamedic']:
                                 self.lastgameid = sorted(user_datadic_new['user_gamedic'], reverse=True)[0]
-                            except:
-                                pass
-                        #其他 整合推送
+                        # 其他 整合推送
                         else:
                             if key not in self.userdata_dic:
                                 pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
@@ -1699,12 +1580,13 @@ class OsuUser(SubMonitor):
                     if pushtext_body:
                         pushtext = "【%s %s 数据改变】\n%s\n时间：%s网址：https://osu.ppy.sh/users/%s" % (
                             self.__class__.__name__, self.tgt_name, pushtext_body,
-                            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z"), self.tgt)
+                            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).strftime(
+                                "%Y-%m-%d %H:%M:%S %Z"), self.tgt)
                         self.push(pushtext)
                 writelog(self.logpath, '[Success] "%s" getosuuser %s' % (self.name, self.tgt))
-            else:
-                printlog('[Error] "%s" getosuuser %s' % (self.name, self.tgt))
-                writelog(self.logpath, '[Error] "%s" getosuuser %s' % (self.name, self.tgt))
+            except Exception as e:
+                printlog('[Error] "%s" getosuuser %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" getosuuser %s: %s' % (self.name, self.tgt, e))
             time.sleep(self.interval)
 
     def push(self, pushtext):
@@ -1721,43 +1603,41 @@ def getyoutubevideodic(user_id, proxy):
     try:
         videolist = {}
         url = "https://www.youtube.com/channel/%s/videos?view=57&flow=grid" % user_id
-        response = requests.get(url, stream=True, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            videolist_all = soup.find_all(class_='yt-lockup-content')
-            for video in videolist_all:
-                try:
-                    video_id = video.h3.a["href"].replace('/watch?v=', '')
-                    video_title = video.h3.a["title"]
-                    if len(video.find(class_="yt-lockup-meta-info").find_all("li")) > 1:
-                        video_type, video_status = "视频", "上传"
-                        video_timestamp = int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
+        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+        soup = BeautifulSoup(response.text, 'lxml')
+        videolist_all = soup.find_all(class_='yt-lockup-content')
+        for video in videolist_all:
+            video_id = video.h3.a["href"].replace('/watch?v=', '')
+            video_title = video.h3.a["title"]
+            if len(video.find(class_="yt-lockup-meta-info").find_all("li")) > 1:
+                video_type, video_status = "视频", "上传"
+                video_timestamp = int(
+                    datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
+            else:
+                timestamp = video.find(attrs={"data-timestamp": True})
+                if video.find(class_="accessible-description"):
+                    if timestamp:
+                        video_type, video_status = "首播", "等待"
+                        video_timestamp = timestamp["data-timestamp"]
                     else:
-                        timestamp = video.find(attrs={"data-timestamp": True})
-                        if video.find(class_="accessible-description"):
-                            if timestamp:
-                                video_type, video_status = "首播", "等待"
-                                video_timestamp = timestamp["data-timestamp"]
-                            else:
-                                video_type, video_status = "首播", "开始"
-                                video_timestamp = int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
-                        else:
-                            if timestamp:
-                                video_type, video_status = "直播", "等待"
-                                video_timestamp = timestamp["data-timestamp"]
-                            else:
-                                video_type, video_status = "直播", "开始"
-                                video_timestamp = int(datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
-                    videolist[video_id] = {"video_title": video_title, "video_type": video_type,
-                                           "video_status": video_status, "video_timestamp": video_timestamp}
-                except:
-                    pass
-            # 可能为空 可以为空
-            return videolist
-        else:
-            return False
-    except:
-        return False
+                        video_type, video_status = "首播", "开始"
+                        video_timestamp = int(
+                            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
+                else:
+                    if timestamp:
+                        video_type, video_status = "直播", "等待"
+                        video_timestamp = timestamp["data-timestamp"]
+                    else:
+                        video_type, video_status = "直播", "开始"
+                        video_timestamp = int(
+                            datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
+            videolist[video_id] = {"video_title": video_title, "video_type": video_type,
+                                   "video_status": video_status, "video_timestamp": video_timestamp}
+        return videolist
+    except Exception as e:
+        raise e
 
 
 def getyoutubevideostatus(video_id, proxy):
@@ -1776,43 +1656,39 @@ def getyoutubevideostatus(video_id, proxy):
     '''
     try:
         url = 'https://www.youtube.com/watch?v=%s' % video_id
-        response = requests.get(url, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            script = eval('"""{}"""'.format(soup.find(string=re.compile(r'\\"isLiveContent\\":'))))
-
-            if script == "None":
-                video_status = "删除"
-            elif script.count('"isLiveNow":'):
-                if script.count('"endTimestamp":'):
-                    video_status = "结束"
-                elif script.count('"isLiveNow":true'):
-                    video_status = "开始"
-                else:
-                    video_status = "等待"
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
+        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+        soup = BeautifulSoup(response.text, 'lxml')
+        script = eval('"""{}"""'.format(soup.find(string=re.compile(r'\\"isLiveContent\\":'))))
+        if script == "None":
+            video_status = "删除"
+        elif script.count('"isLiveNow":'):
+            if script.count('"endTimestamp":'):
+                video_status = "结束"
+            elif script.count('"isLiveNow":true'):
+                video_status = "开始"
             else:
-                video_status = "上传"
-            return video_status
+                video_status = "等待"
         else:
-            return False
-    except:
-        return False
+            video_status = "上传"
+        return video_status
+    except Exception as e:
+        raise e
 
 
 def getyoutubevideodescription(video_id, proxy):
     try:
         url = 'https://www.youtube.com/watch?v=%s' % video_id
-        response = requests.get(url, stream=True, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            video_description = re.findall(r'\\"description\\":{\\"simpleText\\":\\"([^"]*)\\"', response.text)[0]
-            video_description = eval('"""{}"""'.format(video_description))
-            video_description = eval('"""{}"""'.format(video_description))
-            # 可能为空 可以为空 区分空字符串
-            return video_description
-        else:
-            return False
-    except:
-        return False
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
+        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+        video_description = re.findall(r'\\"description\\":{\\"simpleText\\":\\"([^"]*)\\"', response.text)[0]
+        video_description = eval('"""{}"""'.format(video_description))
+        video_description = eval('"""{}"""'.format(video_description))
+        return video_description
+    except Exception as e:
+        raise e
 
 
 def getyoutubechatcontinuation(video_id, proxy):
@@ -1821,14 +1697,13 @@ def getyoutubechatcontinuation(video_id, proxy):
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
         response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            continuation = re.findall('"continuation":"([^"]*)"', response.text)[0]
-            # 不可能为空 不可以为空
+        continuation = re.findall('"continuation":"([^"]*)"', response.text)[0]
+        if continuation:
             return continuation
         else:
-            return False
-    except:
-        return False
+            raise Exception("Invalid continuation")
+    except Exception as e:
+        raise e
 
 
 def getyoutubechatlist(continuation, proxy):
@@ -1862,53 +1737,47 @@ def getyoutubechatlist(continuation, proxy):
             ('pbj', '1'),
         )
         response = requests.get(url, headers=headers, params=params, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            continuation_new = re.findall('"continuation":"([^"]*)"', response.text)[0]
-            chatlist_json = json.loads(response.text)['response']['continuationContents']['liveChatContinuation']
-            if 'actions' in chatlist_json:
-                for chat in chatlist_json['actions']:
-                    try:
-                        if 'liveChatTextMessageRenderer' in chat['addChatItemAction']['item']:
-                            chat_type = 'message'
-                            chat_dic = chat['addChatItemAction']['item']['liveChatTextMessageRenderer']
-                        elif 'liveChatPaidMessageRenderer' in chat['addChatItemAction']['item']:
-                            chat_type = 'superchat'
-                            chat_dic = chat['addChatItemAction']['item']['liveChatPaidMessageRenderer']
-                        elif 'liveChatPaidStickerRenderer' in chat['addChatItemAction']['item']:
-                            chat_type = 'supersticker'
-                            chat_dic = chat['addChatItemAction']['item']['liveChatPaidStickerRenderer']
-                        elif 'liveChatMembershipItemRenderer' in chat['addChatItemAction']['item']:
-                            chat_type = 'membership'
-                            chat_dic = chat['addChatItemAction']['item']['liveChatMembershipItemRenderer']
-                        else:
-                            chat_type = ''
-                            chat_dic = {}
+        continuation_new = re.findall('"continuation":"([^"]*)"', response.text)[0]
+        chatlist_json = json.loads(response.text)['response']['continuationContents']['liveChatContinuation']
+        if 'actions' in chatlist_json:
+            for chat in chatlist_json['actions']:
+                if 'addChatItemAction' in chat:
+                    if 'liveChatTextMessageRenderer' in chat['addChatItemAction']['item']:
+                        chat_type = 'message'
+                        chat_dic = chat['addChatItemAction']['item']['liveChatTextMessageRenderer']
+                    elif 'liveChatPaidMessageRenderer' in chat['addChatItemAction']['item']:
+                        chat_type = 'superchat'
+                        chat_dic = chat['addChatItemAction']['item']['liveChatPaidMessageRenderer']
+                    elif 'liveChatPaidStickerRenderer' in chat['addChatItemAction']['item']:
+                        chat_type = 'supersticker'
+                        chat_dic = chat['addChatItemAction']['item']['liveChatPaidStickerRenderer']
+                    elif 'liveChatMembershipItemRenderer' in chat['addChatItemAction']['item']:
+                        chat_type = 'membership'
+                        chat_dic = chat['addChatItemAction']['item']['liveChatMembershipItemRenderer']
+                    else:
+                        chat_type = ''
+                        chat_dic = {}
 
-                        if chat_dic:
-                            chat_timestamp_float = float(chat_dic['timestampUsec']) / 1000000
-                            chat_username = chat_dic['authorName']['simpleText']
-                            chat_userchannel = chat_dic['authorExternalChannelId']
-                            chat_text = ''
-                            if 'message' in chat_dic:
-                                for chat_text_run in chat_dic['message']['runs']:
-                                    if 'text' in chat_text_run:
-                                        chat_text += chat_text_run['text']
-                                    elif 'emoji' in chat_text_run:
-                                        chat_text += chat_text_run['emoji']['shortcuts'][0]
-                            if 'purchaseAmountText' in chat_dic:
-                                chat_type += ' %s' % chat_dic['purchaseAmountText']['simpleText']
-                            chatlist.append(
-                                {"chat_timestamp_float": chat_timestamp_float, "chat_username": chat_username,
-                                 "chat_userchannel": chat_userchannel, "chat_type": chat_type,
-                                 "chat_text": chat_text})
-                    except:
-                        continue
-            # 可能为空 可以为空
-            return chatlist, continuation_new
-        else:
-            return False, continuation
-    except:
-        return False, continuation
+                    if chat_dic:
+                        chat_timestamp_float = float(chat_dic['timestampUsec']) / 1000000
+                        chat_username = chat_dic['authorName']['simpleText']
+                        chat_userchannel = chat_dic['authorExternalChannelId']
+                        chat_text = ''
+                        if 'message' in chat_dic:
+                            for chat_text_run in chat_dic['message']['runs']:
+                                if 'text' in chat_text_run:
+                                    chat_text += chat_text_run['text']
+                                elif 'emoji' in chat_text_run:
+                                    chat_text += chat_text_run['emoji']['shortcuts'][0]
+                        if 'purchaseAmountText' in chat_dic:
+                            chat_type += ' %s' % chat_dic['purchaseAmountText']['simpleText']
+                        chatlist.append(
+                            {"chat_timestamp_float": chat_timestamp_float, "chat_username": chat_username,
+                             "chat_userchannel": chat_userchannel, "chat_type": chat_type,
+                             "chat_text": chat_text})
+        return chatlist, continuation_new
+    except Exception as e:
+        raise e
 
 
 def getyoutubepostdic(user_id, cookies, proxy):
@@ -1920,29 +1789,23 @@ def getyoutubepostdic(user_id, cookies, proxy):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
         }
         response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            postpage_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
-            postlist_json = postpage_json['contents']['twoColumnBrowseResultsRenderer']['tabs'][3]['tabRenderer'][
-                'content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
-            for post in postlist_json:
-                try:
-                    post_info = post['backstagePostThreadRenderer']['post']['backstagePostRenderer']
-                    post_id = post_info['postId']
-                    post_time = ''
-                    for post_time_run in post_info['publishedTimeText']['runs']:
-                        post_time += post_time_run['text']
-                    post_text = ''
-                    for post_text_run in post_info['contentText']['runs']:
-                        post_text += post_text_run['text']
-                    postlist[post_id] = {"post_time": post_time, "post_text": post_text}
-                except:
-                    pass
-            # 可能为空 可以为空
-            return postlist
-        else:
-            return False
-    except:
-        return False
+        postpage_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
+        postlist_json = postpage_json['contents']['twoColumnBrowseResultsRenderer']['tabs'][3]['tabRenderer'][
+            'content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
+        for post in postlist_json:
+            if 'backstagePostThreadRenderer' in post:
+                post_info = post['backstagePostThreadRenderer']['post']['backstagePostRenderer']
+                post_id = post_info['postId']
+                post_time = ''
+                for post_time_run in post_info['publishedTimeText']['runs']:
+                    post_time += post_time_run['text']
+                post_text = ''
+                for post_text_run in post_info['contentText']['runs']:
+                    post_text += post_text_run['text']
+                postlist[post_id] = {"post_time": post_time, "post_text": post_text}
+        return postlist
+    except Exception as e:
+        raise e
 
 
 def getyoutubetoken(cookies, proxy):
@@ -1950,13 +1813,13 @@ def getyoutubetoken(cookies, proxy):
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
         response = requests.get('https://www.youtube.com', headers=headers, cookies=cookies, proxies=proxy)
-        if response.status_code == 200:
-            token = re.findall('"XSRF_TOKEN":"([^"]*)"', response.text)[0]
+        token = re.findall('"XSRF_TOKEN":"([^"]*)"', response.text)[0]
+        if token:
             return token
         else:
-            return False
-    except:
-        return False
+            raise Exception("Invalid token")
+    except Exception as e:
+        raise e
 
 
 def getyoutubenotedic(token, cookies, proxy):
@@ -1974,32 +1837,27 @@ def getyoutubenotedic(token, cookies, proxy):
         }
         response = requests.post('https://www.youtube.com/service_ajax', headers=headers, params=params,
                                  data=data, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            notelist_json = json.loads(response.text)['data']['actions'][0]['openPopupAction']['popup'][
-                'multiPageMenuRenderer']['sections'][0]['multiPageMenuNotificationSectionRenderer']['items']
-            for note in notelist_json:
-                try:
-                    if 'notificationRenderer' in note:
-                        note_id = note['notificationRenderer']['notificationId']
-                        note_text = note['notificationRenderer']['shortMessage']['simpleText']
-                        note_time = note['notificationRenderer']['sentTimeText']['simpleText']
-                        note_videoid = \
-                            note['notificationRenderer']['navigationEndpoint']['commandMetadata']['webCommandMetadata'][
-                                'url'].replace("/watch?v=", "")
-                        youtubenotedic[int(note_id)] = {"note_text": note_text, "note_time": note_time,
-                                                        "note_videoid": note_videoid}
-                except:
-                    continue
-            return youtubenotedic
-        else:
-            return False
-    except:
-        return False
+        notesec_json = \
+            json.loads(response.text)['data']['actions'][0]['openPopupAction']['popup']['multiPageMenuRenderer'][
+                'sections'][0]
+        if 'multiPageMenuNotificationSectionRenderer' in notesec_json:
+            for note in notesec_json['multiPageMenuNotificationSectionRenderer']['items']:
+                if 'notificationRenderer' in note:
+                    note_id = int(note['notificationRenderer']['notificationId'])
+                    note_text = note['notificationRenderer']['shortMessage']['simpleText']
+                    note_time = note['notificationRenderer']['sentTimeText']['simpleText']
+                    note_videoid = \
+                        note['notificationRenderer']['navigationEndpoint']['commandMetadata']['webCommandMetadata'][
+                            'url'].replace("/watch?v=", "")
+                    youtubenotedic[note_id] = {"note_text": note_text, "note_time": note_time,
+                                               "note_videoid": note_videoid}
+        return youtubenotedic
+    except Exception as e:
+        raise e
 
 
 def gettwitteruser(user_screenname, cookies, proxy):
     try:
-        userdata_dic = {}
         headers = {
             'x-csrf-token': cookies['ct0'],
             'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
@@ -2010,29 +1868,27 @@ def gettwitteruser(user_screenname, cookies, proxy):
         )
         response = requests.get('https://api.twitter.com/graphql/G6Lk7nZ6eEKd7LBBZw9MYw/UserByScreenName',
                                 headers=headers, params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            user_data = response.json()['data']['user']
-            userdata_dic = user_data
-            for key in user_data['legacy']:
-                userdata_dic[key] = user_data['legacy'][key]
-            userdata_dic.pop('legacy')
 
-            userdata_dic.pop('followers_count')
-            userdata_dic.pop('normal_followers_count')
-            userdata_dic.pop('listed_count')
-            userdata_dic.pop('notifications')
-            userdata_dic.pop('muting')
-            userdata_dic.pop('blocked_by')
-            userdata_dic.pop('blocking')
-            userdata_dic.pop('follow_request_sent')
-            userdata_dic.pop('followed_by')
-            userdata_dic.pop('following')
+        user_data = response.json()['data']['user']
+        userdata_dic = user_data
+        for key in user_data['legacy']:
+            userdata_dic[key] = user_data['legacy'][key]
+        userdata_dic.pop('legacy')
 
-            return userdata_dic
-        else:
-            return False
-    except:
-        return False
+        userdata_dic.pop('followers_count')
+        userdata_dic.pop('normal_followers_count')
+        userdata_dic.pop('listed_count')
+        userdata_dic.pop('notifications')
+        userdata_dic.pop('muting')
+        userdata_dic.pop('blocked_by')
+        userdata_dic.pop('blocking')
+        userdata_dic.pop('follow_request_sent')
+        userdata_dic.pop('followed_by')
+        userdata_dic.pop('following')
+
+        return userdata_dic
+    except Exception as e:
+        raise e
 
 
 def gettwittertweetdic(user_restid, cookies, proxy):
@@ -2080,42 +1936,38 @@ def gettwittertweetdic(user_restid, cookies, proxy):
         }
         response = requests.get('https://api.twitter.com/2/timeline/profile/%s.json' % user_restid, headers=headers,
                                 params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
+
+        if 'globalObjects' in response.json():
             tweetlist_dic = response.json()['globalObjects']['tweets']
             for tweet_id in tweetlist_dic:
-                try:
-                    if tweetlist_dic[tweet_id]['user_id_str'] == user_restid:
-                        tweet_timestamp = int(datetime.datetime.strptime(tweetlist_dic[tweet_id]['created_at'],
-                                                                         '%a %b %d %H:%M:%S %z %Y').timestamp())
-                        tweet_text = tweetlist_dic[tweet_id]['full_text']
-                        if 'retweeted_status_id_str' in tweetlist_dic[tweet_id]:
-                            tweet_type = "转推"
-                        elif 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
-                            tweet_type = "回复"
-                        else:
-                            tweet_type = "发布"
-                        tweet_media = []
-                        if 'media' in tweetlist_dic[tweet_id]['entities']:
-                            for media in tweetlist_dic[tweet_id]['entities']['media']:
-                                tweet_media.append(media['expanded_url'])
-                        tweet_urls = []
-                        if 'urls' in tweetlist_dic[tweet_id]['entities']:
-                            for url in tweetlist_dic[tweet_id]['entities']['urls']:
-                                tweet_urls.append(url['expanded_url'])
-                        tweet_mention = ""
-                        if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
-                            for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
-                                tweet_mention += "%s\n" % user_mention['screen_name']
-                        tweet_dic[int(tweet_id)] = {"tweet_timestamp": tweet_timestamp, "tweet_text": tweet_text,
-                                                    "tweet_type": tweet_type, "tweet_media": tweet_media,
-                                                    "tweet_urls": tweet_urls, "tweet_mention": tweet_mention}
-                except:
-                    continue
-            return tweet_dic
-        else:
-            return False
-    except:
-        return False
+                if tweetlist_dic[tweet_id]['user_id_str'] == user_restid:
+                    tweet_timestamp = int(datetime.datetime.strptime(tweetlist_dic[tweet_id]['created_at'],
+                                                                     '%a %b %d %H:%M:%S %z %Y').timestamp())
+                    tweet_text = tweetlist_dic[tweet_id]['full_text']
+                    if 'retweeted_status_id_str' in tweetlist_dic[tweet_id]:
+                        tweet_type = "转推"
+                    elif 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
+                        tweet_type = "回复"
+                    else:
+                        tweet_type = "发布"
+                    tweet_media = []
+                    if 'media' in tweetlist_dic[tweet_id]['entities']:
+                        for media in tweetlist_dic[tweet_id]['entities']['media']:
+                            tweet_media.append(media['expanded_url'])
+                    tweet_urls = []
+                    if 'urls' in tweetlist_dic[tweet_id]['entities']:
+                        for url in tweetlist_dic[tweet_id]['entities']['urls']:
+                            tweet_urls.append(url['expanded_url'])
+                    tweet_mention = ""
+                    if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
+                        for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
+                            tweet_mention += "%s\n" % user_mention['screen_name']
+                    tweet_dic[int(tweet_id)] = {"tweet_timestamp": tweet_timestamp, "tweet_text": tweet_text,
+                                                "tweet_type": tweet_type, "tweet_media": tweet_media,
+                                                "tweet_urls": tweet_urls, "tweet_mention": tweet_mention}
+        return tweet_dic
+    except Exception as e:
+        raise e
 
 
 def gettwittersearchdic(qword, cookies, proxy):
@@ -2166,42 +2018,38 @@ def gettwittersearchdic(qword, cookies, proxy):
         # 推文内容包括#话题标签的文字，filter:links匹配链接图片视频但不匹配#话题标签的链接，%%23相当于#话题标签
         url = 'https://api.twitter.com/2/search/adaptive.json?include_profile_interstitial_type=1&include_blocking=1&include_blocked_by=1&include_followed_by=1&include_want_retweets=1&include_mute_edge=1&include_can_dm=1&include_can_media_tag=1&skip_status=1&cards_platform=Web-12&include_cards=1&include_composer_source=true&include_ext_alt_text=true&include_reply_count=1&tweet_mode=extended&include_entities=true&include_user_entities=true&include_ext_media_color=true&include_ext_media_availability=true&send_error_codes=true&simple_quoted_tweets=true&q=' + qword + '&tweet_search_mode=live&count=20&query_source=typed_query&pc=1&spelling_corrections=1&ext=mediaStats%2CcameraMoment'
         response = requests.get(url, headers=headers, params=params, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
+
+        if 'globalObjects' in response.json():
             tweetlist_dic = response.json()['globalObjects']['tweets']
             for tweet_id in tweetlist_dic.keys():
-                try:
-                    tweet_timestamp = int(datetime.datetime.strptime(tweetlist_dic[tweet_id]['created_at'],
-                                                                     '%a %b %d %H:%M:%S %z %Y').timestamp())
-                    tweet_text = tweetlist_dic[tweet_id]['full_text']
-                    if 'retweeted_status_id_str' in tweetlist_dic[tweet_id]:
-                        tweet_type = "转推"
-                    # 不同于用户推特，总是有user_mentions键
-                    elif tweetlist_dic[tweet_id]['entities']['user_mentions']:
-                        tweet_type = "回复"
-                    else:
-                        tweet_type = "发布"
-                    tweet_media = []
-                    if 'media' in tweetlist_dic[tweet_id]['entities']:
-                        for media in tweetlist_dic[tweet_id]['entities']['media']:
-                            tweet_media.append(media['expanded_url'])
-                    tweet_urls = []
-                    if 'urls' in tweetlist_dic[tweet_id]['entities']:
-                        for url in tweetlist_dic[tweet_id]['entities']['urls']:
-                            tweet_urls.append(url['expanded_url'])
-                    tweet_mention = ""
-                    if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
-                        for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
-                            tweet_mention += "%s\n" % user_mention['screen_name']
-                    tweet_dic[int(tweet_id)] = {"tweet_timestamp": tweet_timestamp, "tweet_text": tweet_text,
-                                                "tweet_type": tweet_type, "tweet_media": tweet_media,
-                                                "tweet_urls": tweet_urls, "tweet_mention": tweet_mention}
-                except:
-                    continue
-            return tweet_dic
-        else:
-            return False
-    except:
-        return False
+                tweet_timestamp = int(datetime.datetime.strptime(tweetlist_dic[tweet_id]['created_at'],
+                                                                 '%a %b %d %H:%M:%S %z %Y').timestamp())
+                tweet_text = tweetlist_dic[tweet_id]['full_text']
+                if 'retweeted_status_id_str' in tweetlist_dic[tweet_id]:
+                    tweet_type = "转推"
+                # 不同于用户推特，总是有user_mentions键
+                elif tweetlist_dic[tweet_id]['entities']['user_mentions']:
+                    tweet_type = "回复"
+                else:
+                    tweet_type = "发布"
+                tweet_media = []
+                if 'media' in tweetlist_dic[tweet_id]['entities']:
+                    for media in tweetlist_dic[tweet_id]['entities']['media']:
+                        tweet_media.append(media['expanded_url'])
+                tweet_urls = []
+                if 'urls' in tweetlist_dic[tweet_id]['entities']:
+                    for url in tweetlist_dic[tweet_id]['entities']['urls']:
+                        tweet_urls.append(url['expanded_url'])
+                tweet_mention = ""
+                if 'user_mentions' in tweetlist_dic[tweet_id]['entities']:
+                    for user_mention in tweetlist_dic[tweet_id]['entities']['user_mentions']:
+                        tweet_mention += "%s\n" % user_mention['screen_name']
+                tweet_dic[int(tweet_id)] = {"tweet_timestamp": tweet_timestamp, "tweet_text": tweet_text,
+                                            "tweet_type": tweet_type, "tweet_media": tweet_media,
+                                            "tweet_urls": tweet_urls, "tweet_mention": tweet_mention}
+        return tweet_dic
+    except Exception as e:
+        raise e
 
 
 def gettwitcastlive(user_id, proxy):
@@ -2209,20 +2057,17 @@ def gettwitcastlive(user_id, proxy):
         live_dic = {}
         url = 'https://twitcasting.tv/streamchecker.php?u=%s&v=999' % user_id
         response = requests.get(url, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            live = response.text.split("\t")
-            live_id = live[0]
-            if live_id:
-                live_status = "开始"
-            else:
-                live_status = "结束"
-            live_title = unquote(live[7])
-            live_dic[live_id] = {"live_status": live_status, "live_title": live_title}
-            return live_dic
+        live = response.text.split("\t")
+        live_id = live[0]
+        if live_id:
+            live_status = "开始"
         else:
-            return False
-    except:
-        return False
+            live_status = "结束"
+        live_title = unquote(live[7])
+        live_dic[live_id] = {"live_status": live_status, "live_title": live_title}
+        return live_dic
+    except Exception as e:
+        raise e
 
 
 def gettwitcastchatlist(live_id, proxy):
@@ -2230,30 +2075,23 @@ def gettwitcastchatlist(live_id, proxy):
         twitcastchatlist = []
         url = 'https://twitcasting.tv/userajax.php?c=listall&m=%s&n=10&f=0k=0&format=json' % live_id
         response = requests.get(url, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            for i in range(len(response.json()['comments'])):
-                try:
-                    chat = response.json()['comments'][i]
-                    chat_id = chat['id']
-                    chat_screenname = chat['author']['screenName']
-                    chat_name = chat['author']['name']
-                    chat_timestamp_float = float(chat['createdAt']) / 1000
-                    chat_text = chat['message']
-                    twitcastchatlist.append(
-                        {"chat_id": chat_id, "chat_screenname": chat_screenname, "chat_name": chat_name,
-                         "chat_timestamp_float": chat_timestamp_float, "chat_text": chat_text})
-                except:
-                    continue
-            return twitcastchatlist
-        else:
-            return False
-    except:
-        return False
+        for i in range(len(response.json()['comments'])):
+            chat = response.json()['comments'][i]
+            chat_id = chat['id']
+            chat_screenname = chat['author']['screenName']
+            chat_name = chat['author']['name']
+            chat_timestamp_float = float(chat['createdAt']) / 1000
+            chat_text = chat['message']
+            twitcastchatlist.append(
+                {"chat_id": chat_id, "chat_screenname": chat_screenname, "chat_name": chat_name,
+                 "chat_timestamp_float": chat_timestamp_float, "chat_text": chat_text})
+        return twitcastchatlist
+    except Exception as e:
+        raise e
 
 
 def getfanboxuser(user_id, proxy):
     try:
-        userdata_dic = {}
         headers = {
             "Accept": "application/json, text/plain, */*",
             "Accept-Encoding": "gzip, deflate, br",
@@ -2269,21 +2107,19 @@ def getfanboxuser(user_id, proxy):
         }
         response = requests.get("https://api.fanbox.cc/creator.get?creatorId=%s" % user_id, headers=headers,
                                 timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            user_data = response.json()["body"]
-            userdata_dic = user_data
-            for key in user_data['user']:
-                userdata_dic[key] = user_data['user'][key]
-            userdata_dic.pop('user')
 
-            userdata_dic.pop('isFollowed')
-            userdata_dic.pop('isSupported')
+        user_data = response.json()["body"]
+        userdata_dic = user_data
+        for key in user_data['user']:
+            userdata_dic[key] = user_data['user'][key]
+        userdata_dic.pop('user')
 
-            return userdata_dic
-        else:
-            return False
-    except:
-        return False
+        userdata_dic.pop('isFollowed')
+        userdata_dic.pop('isSupported')
+
+        return userdata_dic
+    except Exception as e:
+        raise e
 
 
 def getfanboxpostdic(user_id, cookies, proxy):
@@ -2304,35 +2140,33 @@ def getfanboxpostdic(user_id, cookies, proxy):
         }
         response = requests.get("https://api.fanbox.cc/post.listCreator?creatorId=%s&limit=10" % user_id,
                                 headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            post_list = response.json()['body']['items']
-            for post in post_list:
-                try:
-                    post_id = post['id']
-                    post_title = post['title']
-                    # python3.6无法识别+00:00格式，只能识别+0000格式
-                    try:
-                        post_publishtimestamp = int(datetime.datetime.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
-                    except:
-                        post_publishtimestamp = int(datetime.datetime.strptime(post['publishedDatetime'].replace(':', ''), "%Y-%m-%dT%H%M%S%z").timestamp())
-                    post_type = post['type']
-                    post_text = ""
-                    if isinstance(post['body'], dict):
-                        if 'text' in post['body']:
-                            post_text = post['body']['text']
-                        elif 'blocks' in post['body']:
-                            for block in post['body']['blocks']:
-                                post_text += "%s\n" % block['text']
-                    post_fee = post['feeRequired']
-                    post_dic[post_id] = {"post_title": post_title, "post_publishtimestamp": post_publishtimestamp,
-                                         "post_type": post_type, "post_text": post_text, "post_fee": post_fee}
-                except:
-                    continue
-            return post_dic
-        else:
-            return False
-    except:
-        return False
+
+        post_list = response.json()['body']['items']
+        for post in post_list:
+            post_id = post['id']
+            post_title = post['title']
+            # python3.6无法识别+00:00格式，只能识别+0000格式
+            try:
+                post_publishtimestamp = int(
+                    datetime.datetime.strptime(post['publishedDatetime'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+            except:
+                post_publishtimestamp = int(
+                    datetime.datetime.strptime(post['publishedDatetime'].replace(':', ''),
+                                               "%Y-%m-%dT%H%M%S%z").timestamp())
+            post_type = post['type']
+            post_text = ""
+            if isinstance(post['body'], dict):
+                if 'text' in post['body']:
+                    post_text = post['body']['text']
+                elif 'blocks' in post['body']:
+                    for block in post['body']['blocks']:
+                        post_text += "%s\n" % block['text']
+            post_fee = post['feeRequired']
+            post_dic[post_id] = {"post_title": post_title, "post_publishtimestamp": post_publishtimestamp,
+                                 "post_type": post_type, "post_text": post_text, "post_fee": post_fee}
+        return post_dic
+    except Exception as e:
+        raise e
 
 
 def getbilibililivedic(room_id, proxy):
@@ -2340,41 +2174,35 @@ def getbilibililivedic(room_id, proxy):
         live_dic = {}
         response = requests.get("http://api.live.bilibili.com/room/v1/Room/get_info?room_id=%s" % room_id,
                                 timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            live = response.json()['data']
-            try:
-                live_id = int(
-                    datetime.datetime.strptime(live['live_time'] + " +0800", '%Y-%m-%d %H:%M:%S %z').timestamp())
-            except:
-                live_id = ''
-            if live['live_status'] == 1:
-                live_status = "开始"
-            else:
-                live_status = "结束"
-            live_title = live['title']
-            live_dic[live_id] = {'live_status': live_status, 'live_title': live_title}
-            return live_dic
+        live = response.json()['data']
+        try:
+            live_id = int(datetime.datetime.strptime(live['live_time'] + " +0800", '%Y-%m-%d %H:%M:%S %z').timestamp())
+        except:
+            live_id = ''
+        if live['live_status'] == 1:
+            live_status = "开始"
         else:
-            return False
-    except:
-        return False
+            live_status = "结束"
+        live_title = live['title']
+        live_dic[live_id] = {'live_status': live_status, 'live_title': live_title}
+        return live_dic
+    except Exception as e:
+        raise e
 
 
 def getbilibilichathostlist(proxy):
     hostlist = []
     try:
         response = requests.get("https://api.live.bilibili.com/room/v1/Danmu/getConf", proxies=proxy)
-        if response.status_code == 200:
-            hostserver_list = response.json()['data']['host_server_list']
-            for hostserver in hostserver_list:
-                try:
-                    hostlist.append('wss://%s:%s/sub' % (hostserver['host'], hostserver['wss_port']))
-                except:
-                    continue
-    except:
-        # 如果返回false会出错
-        pass
-    return hostlist
+        hostserver_list = response.json()['data']['host_server_list']
+        for hostserver in hostserver_list:
+            hostlist.append('wss://%s:%s/sub' % (hostserver['host'], hostserver['wss_port']))
+        if hostlist:
+            return hostlist
+        else:
+            raise Exception("Invalid hostlist")
+    except Exception as e:
+        raise e
 
 
 def getloluser(user_name, user_region, proxy):
@@ -2382,43 +2210,36 @@ def getloluser(user_name, user_region, proxy):
         userdata_dic = {}
         response = requests.get("https://%s.op.gg/summoner/l=en_US&userName=%s" % (user_region, user_name),
                                 timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            # 用户id与时间戳
-            userdata_dic["user_id"] = int(soup.find(id="SummonerRefreshButton").get('onclick').split("'")[1])
-            userdata_dic["renew_timestamp"] = int(soup.find(class_="LastUpdate").span.get('data-datetime'))
-
-            # 比赛结果
-            userdata_dic["user_gamedic"] = {}
-            for gameitem in soup.find_all(class_='GameItemWrap'):
-                game_timestamp = int(gameitem.div.get('data-game-time'))
-                game_id = int(gameitem.div.get('data-game-id'))
-                game_result = gameitem.div.get('data-game-result')
-                game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
-                                         gameitem.find(class_='Assist').text)
-                userdata_dic["user_gamedic"][game_timestamp] = {"game_id": game_id, "game_result": game_result,
-                                                                "game_kda": game_kda}
-        else:
-            return False
+        soup = BeautifulSoup(response.text, 'lxml')
+        # 用户id与时间戳
+        userdata_dic["user_id"] = int(soup.find(id="SummonerRefreshButton").get('onclick').split("'")[1])
+        userdata_dic["renew_timestamp"] = int(soup.find(class_="LastUpdate").span.get('data-datetime'))
+        # 比赛结果
+        userdata_dic["user_gamedic"] = {}
+        for gameitem in soup.find_all(class_='GameItemWrap'):
+            game_timestamp = int(gameitem.div.get('data-game-time'))
+            game_id = int(gameitem.div.get('data-game-id'))
+            game_result = gameitem.div.get('data-game-result')
+            game_kda = "%s/%s/%s" % (gameitem.find(class_='Kill').text, gameitem.find(class_='Death').text,
+                                     gameitem.find(class_='Assist').text)
+            userdata_dic["user_gamedic"][game_timestamp] = {"game_id": game_id, "game_result": game_result,
+                                                            "game_kda": game_kda}
 
         response = requests.get("https://%s.op.gg/summoner/spectator/l=en_US&userName=%s" % (user_region, user_name),
                                 timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            # 当前游戏
-            current_gameitem = soup.find(class_="SpectateSummoner")
-            if current_gameitem:
-                userdata_dic["user_status"] = 'in_game'
-                userdata_dic["user_gametimestamp"] = int(current_gameitem.find(class_="Time").span.get("data-datetime"))
-            else:
-                userdata_dic["user_status"] = 'not_in_game'
-                userdata_dic["user_gametimestamp"] = False
+        soup = BeautifulSoup(response.text, 'lxml')
+        # 当前游戏
+        current_gameitem = soup.find(class_="SpectateSummoner")
+        if current_gameitem:
+            userdata_dic["user_status"] = 'in_game'
+            userdata_dic["user_gametimestamp"] = int(current_gameitem.find(class_="Time").span.get("data-datetime"))
         else:
-            return False
+            userdata_dic["user_status"] = 'not_in_game'
+            userdata_dic["user_gametimestamp"] = False
 
         return userdata_dic
-    except:
-        return False
+    except Exception as e:
+        raise e
 
 
 def renewloluser(user_id, user_region, proxy):
@@ -2428,74 +2249,71 @@ def renewloluser(user_id, user_region, proxy):
         data = "summonerId=%s" % user_id
         response = requests.post("https://%s.op.gg/summoner/ajax/renew.json/" % user_region, headers=headers, data=data,
                                  timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            return True
-        else:
-            return False
-    except:
-        return False
+        if response.status_code != 200:
+            raise Exception("Refresh failed")
+    except Exception as e:
+        raise e
 
 
 def getsteamuser(user_id, cookies, proxy):
     try:
         userdata_dic = {}
-        response = requests.get("https://steamcommunity.com/profiles/%s" % user_id, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            if not soup.find(class_="profile_private_info"):
-                userdata_dic["user_position"] = soup.find(class_="header_real_name ellipsis").text.strip()
-                userdata_dic["user_level"] = soup.find(class_="friendPlayerLevelNum").text.strip()
-                userdata_dic["user_status"] = soup.find(class_="profile_in_game_header").text.strip()
-                for item_count in soup.find_all(class_="profile_count_link ellipsis"):
-                    userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
-                        class_="profile_count_link_total").text.strip()
-            return userdata_dic
-        else:
-            return False
-    except:
-        return False
+        response = requests.get("https://steamcommunity.com/profiles/%s" % user_id, cookies=cookies, timeout=(3, 7),
+                                proxies=proxy)
+        soup = BeautifulSoup(response.text, 'lxml')
+        if not soup.find(class_="profile_private_info"):
+            print(soup.find(class_="header_real_name ellipsis"))
+            userdata_dic["user_position"] = soup.find(class_="header_real_name ellipsis").text.strip()
+            userdata_dic["user_level"] = soup.find(class_="friendPlayerLevelNum").text.strip()
+            userdata_dic["user_status"] = soup.find(class_="profile_in_game_header").text.strip()
+            for item_count in soup.find_all(class_="profile_count_link ellipsis"):
+                userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
+                    class_="profile_count_link_total").text.strip()
+        return userdata_dic
+    except Exception as e:
+        raise e
 
 
 def getosuuser(user_id, cookies, proxy):
     try:
-        userdata_dic = {}
         response = requests.get('https://osu.ppy.sh/users/%s' % user_id, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.text, 'lxml')
-            user_data = json.loads(soup.find(attrs={'id':'json-user','type':'application/json'}).text)
-            userdata_dic = user_data
-            for key in user_data['statistics']:
-                userdata_dic[key] = user_data['statistics'][key]
-            userdata_dic.pop('statistics')
+        soup = BeautifulSoup(response.text, 'lxml')
+        user_data = json.loads(soup.find(attrs={'id': 'json-user', 'type': 'application/json'}).text)
+        userdata_dic = user_data
+        for key in user_data['statistics']:
+            userdata_dic[key] = user_data['statistics'][key]
+        userdata_dic.pop('statistics')
 
-            userdata_dic.pop('follower_count')
-            userdata_dic.pop('rank')
-            userdata_dic.pop('rankHistory')
-            userdata_dic.pop('pp_rank')
-            userdata_dic.pop('last_visit')
+        userdata_dic.pop('follower_count')
+        userdata_dic.pop('rank')
+        userdata_dic.pop('rankHistory')
+        userdata_dic.pop('pp_rank')
+        userdata_dic.pop('last_visit')
 
-            # 比赛结果
-            userdata_dic["user_gamedic"] = {}
-            gamelist = json.loads(soup.find(attrs={'id':'json-extras','type':'application/json'}).text)['recentActivity']
-            for gameitem in gamelist:
-                game_id = gameitem['id']
-                # python3.6无法识别+00:00格式，只能识别+0000格式
-                try:
-                    game_timestamp = int(datetime.datetime.strptime(gameitem['createdAt'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
-                except:
-                    game_timestamp = int(datetime.datetime.strptime(gameitem['createdAt'].replace(':', ''), "%Y-%m-%dT%H%M%S%z").timestamp())
-                game_type = gameitem['type']
-                try:
-                    game_result = "%s - %s(%s) - %s(https://osu.ppy.sh/%s)" % (gameitem['mode'], gameitem['scoreRank'], gameitem['rank'],  gameitem['beatmap']['title'], gameitem['beatmap']['url'])
-                except:
-                    game_result = ''
-                userdata_dic["user_gamedic"][game_id] = {"game_timestamp": game_timestamp, "game_type": game_type,
-                                                            "game_result": game_result}
-            return userdata_dic
-        else:
-            return False
-    except:
-        return False
+        # 比赛结果
+        userdata_dic["user_gamedic"] = {}
+        gamelist = json.loads(soup.find(attrs={'id': 'json-extras', 'type': 'application/json'}).text)['recentActivity']
+        for gameitem in gamelist:
+            game_id = gameitem['id']
+            # python3.6无法识别+00:00格式，只能识别+0000格式
+            try:
+                game_timestamp = int(
+                    datetime.datetime.strptime(gameitem['createdAt'], "%Y-%m-%dT%H:%M:%S%z").timestamp())
+            except:
+                game_timestamp = int(
+                    datetime.datetime.strptime(gameitem['createdAt'].replace(':', ''), "%Y-%m-%dT%H%M%S%z").timestamp())
+            game_type = gameitem['type']
+            try:
+                game_result = "%s - %s(%s) - %s(https://osu.ppy.sh/%s)" % (
+                gameitem['mode'], gameitem['scoreRank'], gameitem['rank'], gameitem['beatmap']['title'],
+                gameitem['beatmap']['url'])
+            except:
+                game_result = ''
+            userdata_dic["user_gamedic"][game_id] = {"game_timestamp": game_timestamp, "game_type": game_type,
+                                                     "game_result": game_result}
+        return userdata_dic
+    except Exception as e:
+        raise e
 
 
 # 检测推送力度
@@ -2631,7 +2449,8 @@ def writelog(logpath, text):
 
 
 def waittime(timestamp):
-    t = second_to_time(int(float(timestamp) - datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp()))
+    t = second_to_time(
+        int(float(timestamp) - datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp()))
     return t
 
 
