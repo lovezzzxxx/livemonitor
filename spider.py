@@ -179,7 +179,7 @@ class YoutubeLive(Monitor):
         while not self.stop_now:
             # 更新视频列表
             try:
-                videodic_new = getyoutubevideodic(self.tgt, self.proxy)
+                videodic_new = getyoutubevideodic(self.tgt, self.cookies, self.proxy)
                 for video_id in videodic_new:
                     if video_id not in self.videodic:
                         self.videodic[video_id] = videodic_new[video_id]
@@ -200,7 +200,7 @@ class YoutubeLive(Monitor):
             for video_id in self.videodic:
                 if self.videodic[video_id]["video_status"] == "等待" or self.videodic[video_id]["video_status"] == "开始":
                     try:
-                        video_status = getyoutubevideostatus(video_id, self.proxy)
+                        video_status = getyoutubevideostatus(video_id, self.cookies, self.proxy)
                         if self.videodic[video_id]["video_status"] != video_status:
                             self.videodic[video_id]["video_status"] = video_status
                             self.push(video_id)
@@ -1599,13 +1599,13 @@ class OsuUser(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-def getyoutubevideodic(user_id, proxy):
+def getyoutubevideodic(user_id, cookies, proxy):
     try:
         videolist = {}
         url = "https://www.youtube.com/channel/%s/videos?view=57&flow=grid" % user_id
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
-        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+        response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
         soup = BeautifulSoup(response.text, 'lxml')
         videolist_all = soup.find_all(class_='yt-lockup-content')
         for video in videolist_all:
@@ -1640,7 +1640,7 @@ def getyoutubevideodic(user_id, proxy):
         raise e
 
 
-def getyoutubevideostatus(video_id, proxy):
+def getyoutubevideostatus(video_id, cookies, proxy):
     '''
     删除:
 
@@ -1658,7 +1658,7 @@ def getyoutubevideostatus(video_id, proxy):
         url = 'https://www.youtube.com/watch?v=%s' % video_id
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
-        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+        response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
         soup = BeautifulSoup(response.text, 'lxml')
         script = eval('"""{}"""'.format(soup.find(string=re.compile(r'\\"isLiveContent\\":'))))
         if script == "None":
@@ -1672,6 +1672,55 @@ def getyoutubevideostatus(video_id, proxy):
                 video_status = "等待"
         else:
             video_status = "上传"
+        return video_status
+    except Exception as e:
+        raise e
+
+
+def __getyoutubevideostatus(video_id, cookies, proxy):
+    try:
+        headers = {
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
+        params = (
+            ('alt', 'json'),
+            ('key', 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8'),
+        )
+        data = {
+            "videoId": video_id,
+            "context": {
+                "client": {
+                    "utcOffsetMinutes": "0",
+                    "deviceId": "Chrome",
+                    "deviceMake": "www",
+                    "deviceModel": "www",
+                    "browserName": "Chrome",
+                    "browserVersion": "83.0.4103.61",
+                    "osName": "Windows",
+                    "osVersion": "10.0",
+                    "clientName": "WEB",
+                    "clientVersion": "2.20200529.02.01",
+                },
+                # "activePlayers": [{"playerContextParams":"Q0FFU0FnZ0M="}] #固定值，暂时不需要
+            },
+            # "cpn":"1111111111111111", #可变值，暂时不需要
+            "heartbeatToken":"",
+            "heartbeatRequestParams":{"heartbeatChecks":["HEARTBEAT_CHECK_TYPE_LIVE_STREAM_STATUS"]}
+        }
+
+        response = requests.post("https://www.youtube.com/youtubei/v1/player/heartbeat", headers=headers, params=params, data=str(data), cookies=cookies, timeout=(3, 7), proxies=proxy)
+
+        if "stopHeartbeat" in response.json():
+            video_status = "上传"
+        else:
+            if response.json()["playabilityStatus"]["status"] == "UNPLAYABLE":
+                video_status = "删除"
+            elif response.json()["playabilityStatus"]["status"] == "OK":
+                video_status = "开始"
+            elif "liveStreamability" not in response.json()["playabilityStatus"] or "displayEndscreen" in \
+                    response.json()["playabilityStatus"]["liveStreamability"]["liveStreamabilityRenderer"]:
+                video_status = "结束"
+            else:
+                video_status = "等待"
         return video_status
     except Exception as e:
         raise e
