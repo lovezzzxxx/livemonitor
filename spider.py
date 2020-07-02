@@ -214,7 +214,7 @@ class YoutubeLive(Monitor):
         if self.status_push.count(self.videodic[video_id]["video_status"]):
             # 获取视频简介
             try:
-                video_description = getyoutubevideodescription(video_id, self.proxy)
+                video_description = getyoutubevideodescription(video_id, self.cookies, self.proxy)
                 writelog(self.logpath,
                          '[Success] "%s" getyoutubevideodescription %s' % (self.name, video_id))
             except Exception as e:
@@ -1601,11 +1601,53 @@ class OsuUser(SubMonitor):
 
 def getyoutubevideodic(user_id, cookies, proxy):
     try:
-        videolist = {}
+        videodic = {}
         url = "https://www.youtube.com/channel/%s/videos?view=57&flow=grid" % user_id
         headers = {
-            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
+            'accept-language': 'zh-CN'}
         response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
+        
+        videolist_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
+        videolist = []
+        def __search(key, json):
+            for k in json:
+                if k == key:
+                    videolist.append(json[k])
+                elif isinstance(json[k], dict):
+                    __search(key, json[k])
+                elif isinstance(json[k], list):
+                    for item in json[k]:
+                        if isinstance(item, dict):
+                            __search(key, item)
+            return
+        __search('gridVideoRenderer', videolist_json)
+        for video_json in videolist:
+            video_id = video_json['videoId']
+            video_title = video_json['title']['simpleText']
+            if 'publishedTimeText' in video_json:
+                video_type, video_status = "视频", "上传"
+                video_timestamp = int(
+                    datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
+            elif 'upcomingEventData' in video_json:
+                status = video_json['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']
+                if status.count('首播') or status.count('PREMIERE') or status.count('プレミア'): #对语言敏感，在有cookies时以cookies设置的语言为准
+                    video_type, video_status = "首播", "等待"
+                else:
+                    video_type, video_status = "直播", "等待"
+                video_timestamp = video_json['upcomingEventData']['startTime']
+            else:
+                status = video_json['badges'][0]['metadataBadgeRenderer']['label']
+                if status.count('首播') or status.count('PREMIERE') or status.count('プレミア'):
+                    video_type, video_status = "首播", "开始"
+                else:
+                    video_type, video_status = "直播", "开始"
+                video_timestamp = int(
+                    datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
+            videodic[video_id] = {"video_title": video_title, "video_type": video_type,
+                                    "video_status": video_status, "video_timestamp": video_timestamp}
+        
+        '''
         soup = BeautifulSoup(response.text, 'lxml')
         videolist_all = soup.find_all(class_='yt-lockup-content')
         for video in videolist_all:
@@ -1633,9 +1675,10 @@ def getyoutubevideodic(user_id, cookies, proxy):
                         video_type, video_status = "直播", "开始"
                         video_timestamp = int(
                             datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).timestamp())
-            videolist[video_id] = {"video_title": video_title, "video_type": video_type,
+            videodic[video_id] = {"video_title": video_title, "video_type": video_type,
                                    "video_status": video_status, "video_timestamp": video_timestamp}
-        return videolist
+        '''
+        return videodic
     except Exception as e:
         raise e
 
@@ -1726,12 +1769,12 @@ def __getyoutubevideostatus(video_id, cookies, proxy):
         raise e
 
 
-def getyoutubevideodescription(video_id, proxy):
+def getyoutubevideodescription(video_id, cookies, proxy):
     try:
         url = 'https://www.youtube.com/watch?v=%s' % video_id
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
-        response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+        response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
         video_description = re.findall(r'\\"description\\":{\\"simpleText\\":\\"([^"]*)\\"', response.text)[0]
         video_description = eval('"""{}"""'.format(video_description))
         video_description = eval('"""{}"""'.format(video_description))
