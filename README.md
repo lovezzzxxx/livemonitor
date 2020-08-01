@@ -1,5 +1,5 @@
 # 功能介绍
-  * spider.py、spider.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测，支持推送到qq用户、qq群、喵提醒、discord、telegram。  
+  * spider.py、spider.json为检测脚本及相应设置文件。支持youtube频道 直播留言 社区帖子 推送、twitter用户信息 用户推特 推特搜索、twitcast频道 直播留言、fanbox用户信息 帖子的检测、bilibili频道 直播留言、lol steam osu用户数据，支持推送到qq用户、qq群、喵提醒、discord、telegram。  
   * release中发布的exe版本可以在windows中直接运行，无需依赖、点开即用。
 
 感谢[太古oo](https://www.bilibili.com/read/cv4603796)提供的灵感和检测方法，感谢[24h-raspberry-live-on-bilibili](https://github.com/chenxuuu/24h-raspberry-live-on-bilibili/tree/master)与[blivedm](https://github.com/xfgryujk/blivedm)的b站弹幕接口。  
@@ -34,19 +34,17 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
 
 # 脚本详解
 ### 脚本运行原理
-  * 脚本将会按照设置文件中的设置来启动许多子监视器线程以完成不同的监视任务，你可以为每一个监视器线程指定不同的运行参数，也可以让一些监视器线程共用一些运行参数，同时为每个监视器添加各自特有的运行参数。脚本内置了一些预设的子监视器，你也可以通过继承脚本中的Monitor类来编写自己的子监视器。脚本目前只有推送到qq的功能，不过你也可以在pushall方法中添加自己的内容来增加新的推送功能。
+  * 脚本将会按照设置文件中的设置来启动许多子监视器线程以完成不同的监视任务，你可以为每一个监视器线程指定不同的运行参数，也可以让一些监视器线程共用一些运行参数的同时为每个监视器添加各自特有的运行参数。你可以通过继承脚本中的Monitor类来编写自己的子监视器，或者在pushall方法中添加新的推送功能。
   * 每个子监视器线程都会定时检测指定的内容，如youtube视频列表、twitter用户信息、twitcast直播状态等，并将更新的信息与指定的关键词进行匹配，对符合条件的信息向用户进行推送。
-  * 关键词匹配基本由设置文件中的"vip_dic"和"word_dic"指定，"vip_dic"中的关键词用于匹配检测的频道、发送的用户、提及的用户之类的信息，"word_dic"中的关键词用于匹配标题、简介、消息内容之类的信息；当匹配到相应的关键词时，关键词对应的"推送色彩"将会被记录并累加。例如当检测的用户发送了一条消息`小红和小蓝在玩`时，如果`"word_dic": {'小红': {'red': 1, 'small': 1}, '小蓝': {'blue': 1, 'small': 2}}`，则这条消息的"推送色彩"将会为`{'red': 1, 'blue': 1, 'small': 3}`。
-  * 用户推送由设置文件中的"push_dic"指定，其中除了诸如用户类型和qq号等基本信息之外还有指定"接收色彩"的参数"color_dic"，当一条消息的"推送色彩"中有任何一个对应类型的值大于或等于"接收色彩"中的指定值时这条消息就会向该用户推送。对于上述例子中的消息，如果用户的`"color_dic": {'green': 1, 'small': 2}`，那么因为"small"这种色彩的值大于用户接受色彩的值，所以这条消息将会向这该用户推送。
-  * 当qq用户或qq群内向机器人账号发送`\pause 数字`指令后，相应qq账号或qq群的"推送阻力"将会被记录到pause.json文件中。在推送时相应账号的所有"接收色彩"将会增加"推送阻力"的值，也就是对推送内容更加"挑剔"，以减少不相关内容的骚扰。
-  * "推送色彩"、"接收色彩"、"推送阻力"都可以设定为负值，或许可以产生更灵活的用法。
+  * 关键词匹配基本由设置文件中的"vip_dic"和"word_dic"指定，"vip_dic"中的关键词用于匹配检测的频道、发送的用户、提及的用户之类的信息，"word_dic"中的关键词用于匹配标题、简介、消息内容之类的信息；关键词有对应的"权重类型"和相应的"权重值"。当匹配到相应的关键词时，关键词对应的"权重类型"的"权重值"将会被分别记录并累加。例如当检测的用户发送了一条消息`小红和小蓝在玩`时，如果`"word_dic": {'小红': {'red': 1, 'small': 1}, '小蓝': {'blue': 1, 'small': 2}}`，则这条消息的"权重"将会为`{'red': 1, 'blue': 1, 'small': 3}`。
+  * 用户推送由设置文件中的"push_dic"指定，其中除了如推送类型和qq号等基本信息之外，还有指定"接收权重"的参数"color_dic"，当一条消息的"推送权重"中有任何一个"权重类型"的"权重值"大于或等于"接收权重"中的指定值时这条消息就会向该用户推送。对于上述例子中的消息，如果用户的`"color_dic": {'green': 1, 'small': 2}`，那么因为"small"这种色彩的值大于用户接收权重的值，所以这条消息将会向该用户推送。
+  * 当qq用户或qq群内向机器人账号发送`\pause 数字`指令后，相应qq账号或qq群的"接收阻力"将会被记录到pause.json文件中。在推送时相应账号的所有"接收权重"将会增加"接收阻力"的值，以减少不相关内容的骚扰。
+  * "推送权重"、"接收权重"、"接收阻力"可以设定为负数，或许可以产生更灵活的用法。
 
 
 ### 配置文件详解
 ```
 {
-  "interval": 180,  # 主监视器循环间隔 以秒为单位
-  
   "submonitor_dic": {  # 子监视器列表
     "YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config"},
     "TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config"}
@@ -54,7 +52,8 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
   },
   
   "youtube_config": {  # 配置名称 即上面"config_name"后指定的名称
-    "interval": 180,
+    "interval": 180, # 检测循环间隔
+    "timezone": 8, # 推送时转换为指定的时区 如北京时间即东八区则为8
     "vip_dic": {  # 用于匹配"target"中指定的频道或者直播留言的发送者 注意大小写敏感
       "UCWCc8tO-uUl_7SJXIKJACMw": {"mea": 10},
       "UCu5eCcfs67GkeCFbhsMrEjA": {"mea": 10},
@@ -69,29 +68,29 @@ coolq机器人在windows中直接下载运行即可；在linux中需要在docker
       "かぐら": {"mea": 2},
       "メア": {"mea": 2}
     },
-    "cookies": {}, # 检测所用的cookies，可以在浏览器中打开youtube页面时按下f12，在"网络"中寻找POST类型的请求并复制其cookies即可，注意可能需要删除开头的"{请求cookies"和结尾的多余的"}"，不指定可以留空或删除此项；更详细的例子可以参考https://github.com/lovezzzxxx/livemonitor/issues/1
+    "cookies": {}, # 检测所用的cookies，可以在浏览器中打开youtube页面时按下f12，在"网络"中寻找POST类型的请求并复制其cookies即可，注意可能需要删除开头的"{请求cookies"和结尾的多余的"}"，不指定可以留空或删除此项
     "proxy": {"http": "socks5://127.0.0.1:1080","https": "socks5://127.0.0.1:1080"}, # 指定代理，如果使用非sock5代理可设置为{"http": "127.0.0.1:1080", "https": "127.0.0.1:1080"}，不使用代理可以留空或删除此项
     "push_list": [ # 指定推送对象
         {"type": "qq_user", "id": "qq号", "port": 5700, "color_dic": {"mea": 1}},
-        {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
-        {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-        {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}}, #不推送文字，防止语音或者短信推送失效
-				    {"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
-			    	{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
+        {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 1}},
+        {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 1}},
+        {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 1}}, #不推送文字，防止语音或者短信推送失效
+	{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
+	{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
     ]
 }
 ```
 
-  * 监视器运行所需的参数由"submonitor_dic"中的项和其中"config_name"指向的配置组成，其中"class"、"target"、"target_name"、"config_name"四个项目作为必选参数需要在"submonitor_dic"中指定，其他参数既可以添加在"submonitor_dic"中也可以添加在"config_name"指向的配置中；注意当有同名参数同时存在于两个未知时，"submonitor_dic"中的参数将会生效。例如spider.json中就在部分"submonitor_dic"监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。  
+  * 监视器运行所需的参数由"submonitor_dic"中的项和其中"config_name"指向的配置组成，其中"class"、"target"、"target_name"、"config_name"四个项目作为必选参数需要在"submonitor_dic"中指定，其他参数既可以添加在"submonitor_dic"中也可以添加在"config_name"指向的配置中；注意当有同名参数同时存在于两个位置时，"submonitor_dic"中的参数将会生效。例如spider.json中就在部分"submonitor_dic"监视器信息中额外指定了"interval"的值，以便让这些监视有更短的检测间隔。  
   * 基于Monitor类的监视器可以启动自己的子监视器，只要指定的配置中还有"submonitor_dic"项并且添加了相应的子监视器信息的话。例如spider.json中就先启动了基于Monitor类的"Youtube"、"Twitter"、"Fanbox"三个监视器，这三个监视器又启动了各自配置中"submonitor_dic"项中指定的子监视器。
   * YoutubeLive、TwitcastLive和BilibiliLive监视器可以在一定情况下启动自己的YoutubeChat、TwitcastChat和BilibiliChat子监视器，这些子监视器将会继承父监视器的config_name所指向的配置，但不会继承父监视器submonitor_dic中额外指定的参数（即submonitor_dic中指定的参数不被继承，而config_name中指定的参数将被继承），如果想让Live监视器和Chat监视器有不同的设置则可以分别在submonitor_dic和config_name所指向的配置中设定两者的参数。
-  * YoutubeChat、TwitcastChat和BilibiliChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，推送的"推送色彩"将会减去相应关键词的"推送色彩"。为了防止某场直播中的出现大量评论频繁触发推送，每次推送时如果"推送色彩"中如果有大于0的项，那么后续推送中这种色彩将会被增加1的推送惩罚；当色彩名字中含有"vip"字样时，这种色彩不会受到推送惩罚。
+  * YoutubeChat、TwitcastChat和BilibiliChat子监视器会对直播评论发送者和评论内容进行关键词匹配（用于监视本人出现在其他人的直播间或者其他直播提到特定内容的情况）。为了防止vip本人的直播中的评论触发推送，如果子监视器的"target"项和"vip_dic"中关键词匹配的话，"推送权重"将会减去"vip_dic"中相应"关键词的权重"。为了防止某场直播中的出现大量评论频繁触发推送，每次推送时如果"推送权重"中如果有大于0的项，那么后续推送中这种权重类型将会被增加1的推送惩罚；当权重类型名字中含有"vip"字样时，这种权重类型不会受到推送惩罚。
   
 ### 子监视器详解
 __子监视器类名__|作用|__通用必选参数__|vip_dic匹配内容|word_dic匹配内容|cookies作用|__特有可选参数__|说明
 :---|:---|:---|:---|:---|:---|:---|:---
 Monitor|作为基本监视器管理子监视器组|interval|||||
-YoutubeLive|监视youtube直播和视频|interval、vip_dic、word_dic、cookies、proxy、push_list|target|标题、简介|可留空|"standby_chat"，"standby_chat_onstart"，"no_chat"，"status_push"，"regen"，"regen_amount"|standby_chat为是否检测待机直播间的弹幕 默认为"False" 可选"True"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False" 可选"True"，no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"等待\|开始\|结束\|上传\|删除"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
+YoutubeLive|监视youtube直播和视频|interval、timezone、vip_dic、word_dic、cookies、proxy、push_list|target|标题、简介|可留空|"standby_chat"，"standby_chat_onstart"，"no_chat"，"status_push"，"regen"，"regen_amount"|standby_chat为是否检测待机直播间的弹幕 默认为"False" 可选"True"，standby_chat_onstart是否检测在第一次检测时已开启的待机直播间的弹幕 默认为"False" 可选"True"，no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"等待\|开始\|结束\|上传\|删除"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
 YoutubeChat|监视youtube直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由YoutubeLive监视器创建 无需在配置文件中指定
 YoutubeCom|监视youtube社区帖子|同上|target|帖子文字|付费帖子，可留空|||
 YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包括superchat）|用户通知，必要|||
