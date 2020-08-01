@@ -1,5 +1,4 @@
-{	
-	"interval": 180,
+{
 	"submonitor_dic": {
 		"Youtube": {"class": "Monitor", "target": "youtube", "target_name": "youtube", "config_name": "youtube"},
 		"Twitter": {"class": "Monitor", "target": "twitter", "target_name": "twitter", "config_name": "twitter"},
@@ -8,7 +7,6 @@
 		"Other": {"class": "Monitor", "target": "other", "target_name": "other", "config_name": "other"}
 	},
 	"youtube": {
-		"interval": 300,
 		"submonitor_dic": {
 			"YoutubeLive 神楽めあ": {"class": "YoutubeLive", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 180, "standby_chat": "True"},
 			"YoutubeCom 神楽めあ": {"class": "YoutubeCom", "target": "UCWCc8tO-uUl_7SJXIKJACMw", "target_name": "神楽めあ", "config_name": "youtube_config", "interval": 180},
@@ -18,22 +16,24 @@
 			"YoutubeCom 愛繋璃": {"class": "YoutubeCom", "target": "UCZU5rKvh3aAFs1PyyfeLWcg", "target_name": "愛繋璃", "config_name": "youtube_config"},
 			"YoutubeLive 湊あくあ": {"class": "YoutubeLive", "target": "UC1opHUrw8rvnsadT-iGp7Cg", "target_name": "湊あくあ", "config_name": "youtube_config"},
 			"YoutubeLive 如月こより": {"class": "YoutubeLive", "target": "UCWmJy4zKFf9Y_UQdS5sWuUg", "target_name": "如月こより", "config_name": "youtube_config"},
-			"YoutubeLive 犬山たまき": {"class": "YoutubeLive", "target": "UC8NZiqKx6fsDT3AVcMiVFyA", "target_name": "犬山たまき", "config_name": "youtube_config"},
+			"YoutubeLive 八乙女のえ": {"class": "YoutubeLive", "target": "UCnzGlm7IC7Mkm00AccSEBEw", "target_name": "八乙女のえ", "config_name": "youtube_config"},
 			"YoutubeLive 森永みう": {"class": "YoutubeLive", "target": "UChN7P9OhRltW3w9IesC92PA", "target_name": "森永みう", "config_name": "youtube_config"},
+			"YoutubeLive 犬山たまき": {"class": "YoutubeLive", "target": "UC8NZiqKx6fsDT3AVcMiVFyA", "target_name": "犬山たまき", "config_name": "youtube_config"},
 			"YoutubeLive 日ノ隈らん": {"class": "YoutubeLive", "target": "UCRvpMpzAXBRKJQuk-8-Sdvg", "target_name": "日ノ隈らん", "config_name": "youtube_config"},
 			"YoutubeLive 因幡はねる": {"class": "YoutubeLive", "target": "UC0Owc36U9lOyi9Gx9Ic-4qg", "target_name": "因幡はねる", "config_name": "youtube_config"},
 			"YoutubeLive 物述有栖": {"class": "YoutubeLive", "target": "UCt0clH12Xk1-Ej5PXKGfdPA", "target_name": "物述有栖", "config_name": "youtube_config"},
 			"YoutubeLive 宇志海いちご": {"class": "YoutubeLive", "target": "UCmUjjW5zF1MMOhYUwwwQv9Q", "target_name": "宇志海いちご", "config_name": "youtube_config"},
-			"YoutubeLive 卯月コウ": {"class": "YoutubeLive", "target": "UC3lNFeJiTq6L3UWoz4g1e-A", "target_name": "卯月コウ", "config_name": "youtube_config"},
-			"YoutubeLive 舞元啓介": {"class": "YoutubeLive", "target": "UCJubINhCcFXlsBwnHp0wl_g", "target_name": "舞元啓介", "config_name": "youtube_config"},
 			"YoutubeLive けんき": {"class": "YoutubeLive", "target": "UCNicQVuAQJYlCQKEw1TKn1A", "target_name": "けんき", "config_name": "youtube_config"}
 		},
 		"youtube_config": {
 			"interval": 300,
+			"timezone": 8,
+			"regen": 900,
+			"regen_amount": 4,
 			"vip_dic": {
-				"UCWCc8tO-uUl_7SJXIKJACMw": {"mea": 10},
-				"UCu5eCcfs67GkeCFbhsMrEjA": {"mea": 10},
-				"UCZU5rKvh3aAFs1PyyfeLWcg": {"mea": 10}
+				"UCWCc8tO-uUl_7SJXIKJACMw": {"mea": 10, "mea_vip": 10},
+				"UCu5eCcfs67GkeCFbhsMrEjA": {"mea": 10, "mea_vip": 10},
+				"UCZU5rKvh3aAFs1PyyfeLWcg": {"maturin": 10, "maturin_vip": 10}
 			},
 			"word_dic": {
 				"神楽": {"mea": 2},
@@ -44,51 +44,46 @@
 				"mea": {"mea": 2},
 				"めあちゃん": {"mea": 2},
 				"めあだ": {"mea": 2},
-				"めあり": {"mea": -1},
-				"メアリ": {"mea": -1}
+				"めあり": {"mea": -2},
+				"メアリ": {"mea": -2},
+				"mean": {"mea": -2},
+				"meas": {"mea": -2}
 			},
 			"cookies": {},
 			"proxy": {},
 			"push_list": [
-				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1}},
-				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
-				{"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
-				{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
+				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1, "mea_vip": 1, "maturin": 1, "maturin_vip": 1}},
+				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4, "mea_vip": 4, "maturin": 4, "maturin_vip": 4}},
+				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1, "mea_vip": 1}}
 			]
 		}
 	},
 	"twitter": {
-		"interval": 180,
 		"submonitor_dic": {
 			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "True"},
 			"TwitterTweet 神楽めあ": {"class": "TwitterTweet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
 			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
-			"TwitterUser 愛繋璃": {"class": "TwitterUser", "target": "maturin_love221", "target_name": "愛繋璃", "config_name": "twitter_config", "interval": 60},
-			"TwitterTweet 愛繋璃": {"class": "TwitterTweet", "target": "maturin_love221", "target_name": "愛繋璃", "config_name": "twitter_config", "interval": 60},
 			"TwitcastLive 愛繋璃": {"class": "TwitcastLive", "target": "maturin_love221", "target_name": "愛繋璃", "config_name": "twitter_config", "interval": 60},
 			"TwitterTweet 湊あくあ": {"class": "TwitterTweet", "target": "minatoaqua", "target_name": "湊あくあ", "config_name": "twitter_config"},
 			"TwitterTweet 如月こより": {"class": "TwitterTweet", "target": "KisaragiKoyori", "target_name": "如月こより", "config_name": "twitter_config"},
-			"TwitterTweet 犬山たまき": {"class": "TwitterTweet", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
-			"TwitcastLive 犬山たまき": {"class": "TwitcastLive", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
+			"TwitterTweet 八乙女のえ": {"class": "TwitterTweet", "target": "yaotomenoe", "target_name": "八乙女のえ", "config_name": "twitter_config"},
 			"TwitterTweet 森永みう": {"class": "TwitterTweet", "target": "morinaga_miu", "target_name": "森永みう", "config_name": "twitter_config"},
 			"TwitcastLive 森永みう": {"class": "TwitcastLive", "target": "morinaga_miu", "target_name": "森永みう", "config_name": "twitter_config"},
+			"TwitterTweet 犬山たまき": {"class": "TwitterTweet", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
+			"TwitcastLive 犬山たまき": {"class": "TwitcastLive", "target": "norioo_", "target_name": "犬山たまき", "config_name": "twitter_config"},
 			"TwitterTweet 日ノ隈らん": {"class": "TwitterTweet", "target": "Ran_Hinokuma", "target_name": "日ノ隈らん", "config_name": "twitter_config"},
 			"TwitterTweet 因幡はねる": {"class": "TwitterTweet", "target": "Haneru_Inaba", "target_name": "因幡はねる", "config_name": "twitter_config"},
 			"TwitterTweet 物述有栖": {"class": "TwitterTweet", "target": "AliceMononobe", "target_name": "物述有栖", "config_name": "twitter_config"},
-			"TwitterTweet 宇志海いちご": {"class": "TwitterTweet", "target": "ushimi_ichigo", "target_name": "宇志海いちご", "config_name": "twitter_config"},
-			"TwitterTweet 郡道美玲": {"class": "TwitterTweet", "target": "g9v9g_mirei", "target_name": "郡道美玲", "config_name": "twitter_config"},
-			"TwitcastLive 郡道美玲": {"class": "TwitcastLive", "target": "g9v9g_mirei", "target_name": "郡道美玲", "config_name": "twitter_config"},
-			"TwitterTweet 卯月コウ": {"class": "TwitterTweet", "target": "udukikohh", "target_name": "卯月コウ", "config_name": "twitter_config"},
-			"TwitcastLive 卯月コウ": {"class": "TwitcastLive", "target": "udukikohh", "target_name": "卯月コウ", "config_name": "twitter_config"},
-			"TwitterTweet 舞元啓介": {"class": "TwitterTweet", "target": "maimoto_k", "target_name": "舞元啓介", "config_name": "twitter_config"}
+			"TwitterTweet 宇志海いちご": {"class": "TwitterTweet", "target": "ushimi_ichigo", "target_name": "宇志海いちご", "config_name": "twitter_config"}
 		},
 		"twitter_config": {
 			"interval": 180,
+			"timezone": 8,
+			"regen": 900,
+			"regen_amount": 4,
 			"vip_dic": {
-				"KaguraMea_VoV": {"mea": 10},
-				"maturin_love221": {"mea": 10}
+				"KaguraMea_VoV": {"mea": 10, "mea_vip": 10},
+				"maturin_love221": {"maturin": 10, "maturin_vip": 10}
 			},
 			"word_dic": {
 				"神楽": {"mea": 2},
@@ -100,26 +95,23 @@
 				"めあり": {"mea": -1},
 				"メアリ": {"mea": -1}
 			},
-			"cookies": {"_ga":"123456","_gid":"123456","_twitter_sess":"123456","ads_prefs":"\"123456\"","auth_token":"123456","csrf_same_site":"123456","csrf_same_site_set":"123456","ct0":"123456","dnt":"123456","gt":"123456","guest_id":"123456","kdt":"123456","lang":"123456","personalization_id":"\"123456\"","remember_checked_on":"123456","rweb_optin":"123456","twid":"123456"},
+			"cookies": {},
 			"proxy": {},
 			"push_list": [
-				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1}},
-				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
-				{"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
-				{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
+				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1, "mea_vip": 1, "maturin": 1, "maturin_vip": 1}},
+				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4, "mea_vip": 4, "maturin": 4, "maturin_vip": 4}},
+				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1, "mea_vip": 1}}
 			]
 		}
 	},
 	"fanbox": {
-		"interval": 180,
 		"submonitor_dic": {
 			"FanboxUser 神楽めあ": {"class": "FanboxUser", "target": "mea", "target_name": "神楽めあ", "config_name": "fanbox_config"},
 			"FanboxPost 神楽めあ": {"class": "FanboxPost", "target": "mea", "target_name": "神楽めあ", "config_name": "fanbox_config"}
 		},
 		"fanbox_config": {
 			"interval": 180,
+			"timezone": 8,
 			"vip_dic": {
 				"mea": {"mea": 10}
 			},
@@ -127,22 +119,17 @@
 			"cookies": {},
 			"proxy": {},
 			"push_list": [
-				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1}},
-				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}},
-				{"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
-				{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
+				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1}}
 			]
 		}
 	},
 	"bilibili": {
-		"interval": 180,
 		"submonitor_dic": {
 			"BilibiliLive 神楽めあ": {"class": "BilibiliLive", "target": "12235923", "target_name": "神楽めあ", "config_name": "bilibili_config", "interval": 60, "simple_mode": "10"}
 		},
 		"bilibili_config": {
 			"interval": 180,
+			"timezone": 8,
 			"vip_dic": {
 				"12235923": {"mea": 10}
 			},
@@ -153,17 +140,13 @@
 			"cookies": {},
 			"proxy": {},
 			"push_list": [
-				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1, "trans_vip": 4}},
+				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1}},
 				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4, "trans_vip": 4}},
-				{"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1, "trans_vip": 4}},
-				{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1, "trans_vip": 4}}
+				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1, "trans_vip": 4}}
 			]
 		}
 	},
 	"other": {
-		"interval": 180,
 		"submonitor_dic": {
 			"LolUser 神楽めあ": {"class": "LolUser", "target": "かぐらめあっ", "target_name": "神楽めあ", "config_name": "other_config"},
 			"SteamUser 神楽めあ": {"class": "SteamUser", "target": "76561198841028918", "target_name": "神楽めあ", "config_name": "other_config"},
@@ -171,6 +154,7 @@
 		},
 		"other_config": {
 			"interval": 180,
+			"timezone": 8,
 			"vip_dic": {
 				"かぐらめあっ": {"mea": 10},
 				"76561198841028918": {"mea": 10},
@@ -180,12 +164,8 @@
 			"cookies": {},
 			"proxy": {},
 			"push_list": [
-				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1, "trans_vip": 4}},
-				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4, "trans_vip": 4}},
-				{"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 10}},
-				{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1, "trans_vip": 4}},
-				{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1, "trans_vip": 4}}
+				{"type": "qq_user", "id": "qq用户号", "port": 5700, "color_dic": {"mea": 1, "maturin": 1}},
+				{"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 4}}
 			]
 		}
 	}
