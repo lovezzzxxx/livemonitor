@@ -536,7 +536,7 @@ class TwitterUser(SubMonitor):
         pushcolor_dic = pushcolor_vipdic
 
         if pushcolor_dic:
-            pushtext = "【%s %s 数据改变】\n%s\n时间：%s网址：https://twitter.com/%s" % (
+            pushtext = "【%s %s 数据改变】\n%s\n时间：%s\n网址：https://twitter.com/%s" % (
                 self.__class__.__name__, self.tgt_name, pushtext_body, formattime(None, self.timezone), self.tgt)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
