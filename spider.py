@@ -2431,31 +2431,31 @@ def pushtoall(pushtext, push):
     if push['type'] == 'qq_user':
         url = 'http://127.0.0.1:%s/send_private_msg?user_id=%s&message=%s' % (
             push['port'], push['id'], quote(str(pushtext)))
-        pushtourl(url)
+        pushtourl('GET', url)
     elif push['type'] == 'qq_group':
         url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (
             push['port'], push['id'], quote(str(pushtext)))
-        pushtourl(url)
+        pushtourl('GET', url)
     elif push['type'] == 'miaotixing':
         # 带文字推送可能导致语音和短信提醒失效
         url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
-        pushtourl(url)
+        pushtourl('POST', url)
     elif push['type'] == 'miaotixing_simple':
         url = 'https://miaotixing.com/trigger?id=%s' % push['id']
-        pushtourl(url)
+        pushtourl('POST', url)
     elif push['type'] == 'discord':
         url = push['id']
         headers = {"Content-Type": "application/json"}
         data = {"content": pushtext}
-        pushtourl(url, headers, json.dumps(data))
+        pushtourl('POST', url, headers, json.dumps(data))
     elif push['type'] == 'telegram':
         url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=@%s&text=%s' % (
             push['bot_id'], push['id'], quote(str(pushtext)))
-        pushtourl(url)
+        pushtourl('POST', url)
 
 
 # 推送到url
-def pushtourl(url, headers=None, data=None):
+def pushtourl(method, url, headers=None, data=None):
     if data is None:
         data = {}
     if headers is None:
@@ -2463,7 +2463,10 @@ def pushtourl(url, headers=None, data=None):
     for retry in range(1, 5):
         status_code = 'fail'
         try:
-            response = requests.post(url, headers=headers, data=data, timeout=(3, 7))
+            if method == 'GET':
+                response = requests.get(url, headers=headers, timeout=(3, 7))
+            elif method == 'POST':
+                response = requests.post(url, headers=headers, data=data, timeout=(3, 7))
             status_code = response.status_code
         except:
             time.sleep(5)
