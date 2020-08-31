@@ -1607,9 +1607,9 @@ def getyoutubevideodic(user_id, cookies, proxy):
                     video_title += video_title_text['text']
 
             types = video_json['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['accessibility']['accessibilityData']['label']
-            if types == "PREMIERE":
+            if types == "PREMIERE" or types == "首播" or types == 'プレミア':
                 video_type = "首播"
-            elif types == "LIVE":
+            elif types == "LIVE" or types == "直播" or types == 'ライブ':
                 video_type = "直播"
             else:
                 video_type = "视频"
