@@ -1153,7 +1153,7 @@ class BilibiliChat(SubMonitor):
                 chat_type = 'message'
                 chat_text = chat_json['info'][1]
                 chat_userid = str(chat_json['info'][2][0])
-                chat_username = chat_json['info'][2][1]
+                chat_username = "%s %s %s" % (chat_json['info'][2][1], chat_json['info'][3][1], chat_json['info'][3][0])
                 chat_timestamp = float(chat_json['info'][0][4]) / 1000
                 # chat_isadmin = dic['info'][2][2] == '1'
                 # chat_isvip = dic['info'][2][3] == '1'
@@ -1164,7 +1164,7 @@ class BilibiliChat(SubMonitor):
                 chat_type = 'gift %s %s' % (chat_json['data']['giftName'], chat_json['data']['num'])
                 chat_text = ''
                 chat_userid = str(chat_json['data']['uid'])
-                chat_username = chat_json['data']['uname']
+                chat_username = "%s %s %s" % (chat_json['data']['uname'], chat_json['data']['medal_info']['medal_name'], chat_json['data']['medal_info']['medal_level'])
                 chat_timestamp = float(chat_json['data']['timestamp'])
                 chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
                         'chat_username': chat_username, 'chat_timestamp': chat_timestamp}
@@ -1173,8 +1173,17 @@ class BilibiliChat(SubMonitor):
                 chat_type = 'superchat CN¥%s' % chat_json['data']['price']
                 chat_text = chat_json['data']['message']
                 chat_userid = str(chat_json['data']['uid'])
-                chat_username = chat_json['data']['user_info']['uname']
+                chat_username = "%s %s %s" % (chat_json['data']['uname'], chat_json['data']['medal_info']['medal_name'], chat_json['data']['medal_info']['medal_level'])
                 chat_timestamp = float(chat_json['data']['start_time'])
+                chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
+                        'chat_username': chat_username, 'chat_timestamp': chat_timestamp}
+                self.push(chat)
+            elif chat_cmd == 'INTERACT_WORD':
+                chat_type = 'enterroom'
+                chat_text = ''
+                chat_userid = str(chat_json['data']['uid'])
+                chat_username = "%s %s %s" % (chat_json['data']['uname'], chat_json['data']['fans_medal']['medal_name'], chat_json['data']['fans_medal']['medal_level'])
+                chat_timestamp = float(chat_json['data']['timestamp'])
                 chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
                         'chat_username': chat_username, 'chat_timestamp': chat_timestamp}
                 self.push(chat)
@@ -1590,56 +1599,35 @@ def getyoutubevideodic(user_id, cookies, proxy):
         __search('gridVideoRenderer', videolist_json)
         for video_json in videolist:
             video_id = video_json['videoId']
-            video_title = video_json['title']['simpleText']
-            if 'publishedTimeText' in video_json:
-                video_type, video_status = "视频", "上传"
-                video_timestamp = getutctimestamp()
-            elif 'upcomingEventData' in video_json:
-                status = video_json['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['simpleText']
-                if status.count('首播') or status.count('PREMIERE') or status.count(
-                        'プレミア'):  # 对语言敏感，在有cookies时以cookies设置的语言为准
-                    video_type, video_status = "首播", "等待"
-                else:
-                    video_type, video_status = "直播", "等待"
-                video_timestamp = float(video_json['upcomingEventData']['startTime'])
+            video_title = ''
+            if 'simpleText' in video_json['title']:
+                video_title = video_json['title']['simpleText']
+            elif 'runs' in video_json['title']:
+                for video_title_text in video_json['title']['runs']:
+                    video_title += video_title_text['text']
+
+            types = video_json['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['text']['accessibility']['accessibilityData']['label']
+            if types == "PREMIERE":
+                video_type = "首播"
+            elif types == "LIVE":
+                video_type = "直播"
             else:
-                status = video_json['badges'][0]['metadataBadgeRenderer']['label']
-                if status.count('首播') or status.count('PREMIERE') or status.count('プレミア'):
-                    video_type, video_status = "首播", "开始"
-                else:
-                    video_type, video_status = "直播", "开始"
+                video_type = "视频"
+
+            status = video_json['thumbnailOverlays'][0]['thumbnailOverlayTimeStatusRenderer']['style']
+            if status == "UPCOMING":
+                video_status = "等待"
+                video_timestamp = float(video_json['upcomingEventData']['startTime'])
+            elif status == "LIVE":
+                video_status = "开始"
                 video_timestamp = getutctimestamp()
+            else:
+                # status == "DEFAULT"
+                video_status = "上传"
+                video_timestamp = getutctimestamp()
+
             videodic[video_id] = {"video_title": video_title, "video_type": video_type,
                                   "video_status": video_status, "video_timestamp": video_timestamp}
-
-        '''
-        soup = BeautifulSoup(response.text, 'lxml')
-        videolist_all = soup.find_all(class_='yt-lockup-content')
-        for video in videolist_all:
-            video_id = video.h3.a["href"].replace('/watch?v=', '')
-            video_title = video.h3.a["title"]
-            if len(video.find(class_="yt-lockup-meta-info").find_all("li")) > 1:
-                video_type, video_status = "视频", "上传"
-                video_timestamp = getutctimestamp()
-            else:
-                timestamp = video.find(attrs={"data-timestamp": True})
-                if video.find(class_="accessible-description"):
-                    if timestamp:
-                        video_type, video_status = "首播", "等待"
-                        video_timestamp = float(timestamp["data-timestamp"])
-                    else:
-                        video_type, video_status = "首播", "开始"
-                        video_timestamp = getutctimestamp()
-                else:
-                    if timestamp:
-                        video_type, video_status = "直播", "等待"
-                        video_timestamp = float(timestamp["data-timestamp"])
-                    else:
-                        video_type, video_status = "直播", "开始"
-                        video_timestamp = getutctimestamp()
-            videodic[video_id] = {"video_title": video_title, "video_type": video_type,
-                                   "video_status": video_status, "video_timestamp": video_timestamp}
-        '''
         return videodic
     except Exception as e:
         raise e
