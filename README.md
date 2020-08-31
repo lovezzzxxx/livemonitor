@@ -11,24 +11,18 @@
 在命令行中运行`pip3 install requests; pip3 install bs4; pip3 install lxml; pip3 install websocket-client`安装脚本依赖的python库，将spider.py和spider.json文件下载到相同的目录（注意至少还需要在配置文件中设置cookies和要推送的qq账户才能正常运行）。
 ##### 启动方法
   在命令行中运行`python3 spider.py`，按照提示选择配置文件。
-  
-## qq推送(可选)
-##### 安装方法
-  * coolq机器人([windows免费版](https://cqp.cc/)、[windows收费版](https://cqp.cc/t/14901)、[linux docker版](https://cqp.cc/t/34558))和[coolq-http-api插件](https://github.com/richardchien/coolq-http-api/releases)  
 
-coolq机器人和coolq-http-api插件作为qq客户端用于直接和用户收发信息，coolq-http-api插件在接收到检测脚本发送到的指定端口的http请求后向qq用户推送消息（默认为5700端口）。  
-coolq机器人在windows中直接下载运行即可；在linux中需要在docker中安装`docker pull coolq/wine-coolq`、建立设置文件夹`mkdir 'coolq机器人设置文件存放路径'`、运行`docker run --name=coolq --rm -p 5700:5700 -p 9000:9000 -v 刚刚建立的设置文件存放路径:/home/user/coolq -e VNC_PASSWD=网页登陆密码 -e COOLQ_ACCOUNT=你的qq账号 -e CQHTTP_SERVE_DATA_FILES=yes coolq/wine-coolq`、在浏览器中打开`http://你的服务器IP:9000`并输入刚刚设置的网页登陆密码登录。  
-在运行一次后coolq机器人的设置文件夹中将会产生几个文件夹，需要将io.github.richardchien.coolqhttpapi.cpk文件(coolq-http-api插件本体)放到app文件夹下，重启coolq机器人后在设置中启用coolq-http-api插件。
-##### 启动方法
-在安装设置完成后运行并登录即可。
+## 推送方式
+##### qq推送
+在命令行中运行`wget "https://github.com/yyuueexxiinngg/cqhttp-mirai/releases/download/0.2.3/cqhttp-mirai-0.2.3-embedded-all.jar"; sudo apt install default-jre`安装与java环境。使用`java -jar cqhttp-mirai-0.2.3-embedded-all.jar`运行机器人后输入`login qq号 qq密码`登录，如果是初次登录可能会提示打开相应链接进行登录验证，按照提示操作。初次运行后关闭mirai机器人，修改plugins/setting.yml中的内容为setting.yml设置示例中的内容，注意修改其中'用作机器人的QQ号'为机器人的qq号。之后使用`java -jar cqhttp-mirai-0.2.3-embedded-all.jar`按照提示登录即可。
 
-## 喵提醒(可选)
+##### 喵提醒
 在喵提醒微信公众号中选择'提醒'-'添加提醒'，完成设置后将会收到一个喵提醒号。更加详细的说明可以在其微信公众号中查看。
 
-## discord推送(可选)
+##### discord推送
 在discord频道右键-编辑频道-webhook-创建webhook(需要编辑webhook权限)，完成设置后将会产生一个webhook链接。
 
-## telegram推送(可选)
+##### telegram推送
 在telegram中搜索botfather-发送/newbot-输入bot用户名-输入bot id，完成设置后将会产生一个bot token。用户群聊或频道号为邀请链接中的t.me/后面的部分，如果需要在群聊或频道中发言需要先邀请bot进群。
 
 
