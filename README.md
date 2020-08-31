@@ -10,11 +10,12 @@
 ##### 安装方法
 在命令行中运行`pip3 install requests; pip3 install bs4; pip3 install lxml; pip3 install websocket-client`安装脚本依赖的python库，将spider.py和spider.json文件下载到相同的目录（注意至少还需要在配置文件中设置cookies和要推送的qq账户才能正常运行）。
 ##### 启动方法
-  在命令行中运行`python3 spider.py`，按照提示选择配置文件。
+在命令行中运行`python3 spider.py`，按照提示选择配置文件。
 
 ## 推送方式
 ##### qq推送
 在命令行中运行`wget "https://github.com/yyuueexxiinngg/cqhttp-mirai/releases/download/0.2.3/cqhttp-mirai-0.2.3-embedded-all.jar"; sudo apt install default-jre`安装与java环境。使用`java -jar cqhttp-mirai-0.2.3-embedded-all.jar`运行机器人后输入`login qq号 qq密码`登录，如果是初次登录可能会提示打开相应链接进行登录验证，按照提示操作。初次运行后关闭mirai机器人，修改plugins/setting.yml中的内容为setting.yml设置示例中的内容，注意修改其中'用作机器人的QQ号'为机器人的qq号。之后使用`java -jar cqhttp-mirai-0.2.3-embedded-all.jar`按照提示登录即可。
+更加详细的信息可以查看[cqhttp-mirai](https://github.com/yyuueexxiinngg/cqhttp-mirai)
 
 ##### 喵提醒
 在喵提醒微信公众号中选择'提醒'-'添加提醒'，完成设置后将会收到一个喵提醒号。更加详细的说明可以在其微信公众号中查看。
