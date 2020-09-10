@@ -413,9 +413,9 @@ class YoutubeCom(SubMonitor):
 
         # 进行推送
         if pushcolor_dic:
-            pushtext = "【%s %s 社区帖子】\n内容：%s\n时间：%s\n网址：https://www.youtube.com/post/%s" % (
+            pushtext = "【%s %s 社区帖子】\n内容：%s\n链接：%s\n时间：%s\n网址：https://www.youtube.com/post/%s" % (
                 self.__class__.__name__, self.tgt_name, postdic[post_id]["post_text"][0:3000],
-                postdic[post_id]["post_time"], post_id)
+                postdic[post_id]["post_link"], postdic[post_id]["post_time"], post_id)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1597,6 +1597,7 @@ def getyoutubevideodic(user_id, cookies, proxy):
             return
 
         __search('gridVideoRenderer', videolist_json)
+        __search('videoRenderer', videolist_json)
         for video_json in videolist:
             video_id = video_json['videoId']
             video_title = ''
@@ -1847,7 +1848,12 @@ def getyoutubepostdic(user_id, cookies, proxy):
                 post_text = ''
                 for post_text_run in post_info['contentText']['runs']:
                     post_text += post_text_run['text']
-                postlist[post_id] = {"post_time": post_time, "post_text": post_text}
+                post_link = ''
+                if 'backstageAttachment' in post_info:
+                    if 'videoRenderer' in post_info['backstageAttachment']:
+                        if 'videoId' in post_info['backstageAttachment']['videoRenderer']:
+                            post_link = 'https://www.youtube.com/watch?v=%s' % post_info['backstageAttachment']['videoRenderer']['videoId']
+                postlist[post_id] = {"post_time": post_time, "post_text": post_text, "post_link": post_link}
         return postlist
     except Exception as e:
         raise e
@@ -2429,12 +2435,16 @@ def pushall(pushtext, pushcolor_dic, push_list):
 def pushtoall(pushtext, push):
     # 不论windows还是linux都是127.0.0.1
     if push['type'] == 'qq_user':
-        url = 'http://127.0.0.1:%s/send_private_msg?user_id=%s&message=%s' % (
-            push['port'], push['id'], quote(str(pushtext)))
+        if 'ip' not in push:
+            push['ip'] = '127.0.0.1'
+        url = 'http://%s:%s/send_private_msg?user_id=%s&message=%s' % (
+            push['ip'], push['port'], push['id'], quote(str(pushtext)))
         pushtourl('GET', url)
     elif push['type'] == 'qq_group':
-        url = 'http://127.0.0.1:%s/send_group_msg?group_id=%s&message=%s' % (
-            push['port'], push['id'], quote(str(pushtext)))
+        if 'ip' not in push:
+            push['ip'] = '127.0.0.1'
+        url = 'http://%s:%s/send_group_msg?group_id=%s&message=%s' % (
+            push['ip'], push['port'], push['id'], quote(str(pushtext)))
         pushtourl('GET', url)
     elif push['type'] == 'miaotixing':
         # 带文字推送可能导致语音和短信提醒失效
