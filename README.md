@@ -66,7 +66,7 @@
     "cookies": {}, # 检测所用的cookies，可以在浏览器中打开youtube页面时按下f12，在"网络"中寻找POST类型的请求并复制其cookies即可，注意可能需要删除开头的"{请求cookies"和结尾的多余的"}"，不指定可以留空或删除此项
     "proxy": {"http": "socks5://127.0.0.1:1080","https": "socks5://127.0.0.1:1080"}, # 指定代理，如果使用非sock5代理可设置为{"http": "127.0.0.1:1080", "https": "127.0.0.1:1080"}，不使用代理可以留空或删除此项
     "push_list": [ # 指定推送对象
-        {"type": "qq_user", "id": "qq号", "port": 5700, "color_dic": {"mea": 1}},
+        {"type": "qq_user", "id": "qq号", "port": 5700, "color_dic": {"mea": 1}}, # qq_user与qq_group可以通过"ip"键来指定推送到的ip地址，默认为127.0.0.1。修改此设置需要同时修改qq机器人的监听ip，如果指定为本地以外的ip地址可能会导致安全性问题。
         {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 1}},
         {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 1}},
         {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 1}}, #不推送文字，防止语音或者短信推送失效
