@@ -2333,6 +2333,7 @@ def getosuuser(user_id, cookies, proxy):
         userdata_dic.pop('follower_count')
         userdata_dic.pop('rank')
         userdata_dic.pop('rankHistory')
+        userdata_dic.pop('rank_history')
         userdata_dic.pop('pp_rank')
         userdata_dic.pop('last_visit')
 
