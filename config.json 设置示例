@@ -26,16 +26,16 @@
 		"post_urls": {}
 	},
 	"ws_config": {
-		"enabled": true,
+		"enabled": false,
 		"host": "127.0.0.1",
 		"port": 8080
 	},
 	"ws_reverse_servers": [
 		{
-			"enabled": false,
-			"reverse_url": "ws://you_websocket_universal.server",
-			"reverse_api_url": "ws://you_websocket_api.server",
-			"reverse_event_url": "ws://you_websocket_event.server",
+			"enabled": true,
+			"reverse_url": "ws://127.0.0.1:8080/ws/",
+			"reverse_api_url": "ws://127.0.0.1:8080/api/",
+			"reverse_event_url": "ws://127.0.0.1:8080/event/",
 			"reverse_reconnect_interval": 3000
 		}
 	],
