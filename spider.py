@@ -1581,7 +1581,10 @@ def getyoutubevideodic(user_id, cookies, proxy):
             'accept-language': 'zh-CN'}
         response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
 
-        videolist_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
+        if response.text.count('window["ytInitialData"]'):
+            videolist_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
+        else:
+            videolist_json = json.loads(re.findall('>var ytInitialData = (.*?);</script>', response.text)[0])
         videolist = []
 
         def __search(key, json):
@@ -1729,7 +1732,10 @@ def getyoutubevideodescription(video_id, cookies, proxy):
         headers = {
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
         response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        video_description = re.findall(r'\\"description\\":{\\"simpleText\\":\\"(.*?)\\"}', response.text)[0]
+        if response.text.count(r'\"description\":{\"simpleText\":\"'):
+            video_description = re.findall(r'\\"description\\":{\\"simpleText\\":\\"(.*?)\\"}', response.text)[0]
+        else:
+            video_description = re.findall(r'\"description\":{\"simpleText\":\"(.*?)\"}', response.text)[0]
         video_description = eval('"""{}"""'.format(video_description))
         video_description = eval('"""{}"""'.format(video_description))
         return video_description
