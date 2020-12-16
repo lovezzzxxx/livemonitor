@@ -2466,7 +2466,7 @@ def pushtoall(pushtext, push):
         data = {"content": pushtext}
         pushtourl('POST', url, headers, json.dumps(data))
     elif push['type'] == 'telegram':
-        url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=@%s&text=%s' % (
+        url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s' % (
             push['bot_id'], push['id'], quote(str(pushtext)))
         pushtourl('POST', url)
 
