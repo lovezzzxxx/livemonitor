@@ -73,6 +73,7 @@
 	{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
 	{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
     ]
+ }
 }
 ```
 
