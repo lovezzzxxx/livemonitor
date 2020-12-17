@@ -71,7 +71,7 @@
         {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 1}},
         {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 1}}, #不推送文字，防止语音或者短信推送失效
 	{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
-	{"type": "telegram", "id": "telegram 用户群聊或频道号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
+	{"type": "telegram", "id": "telegram @用户群聊频道名 或 -聊天id号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
     ]
  }
 }
