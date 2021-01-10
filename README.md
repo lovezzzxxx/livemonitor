@@ -70,7 +70,7 @@
         {"type": "qq_group", "id": "qq群号", "port": 5700, "color_dic": {"mea": 1}},
         {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 1}},
         {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 1}}, #不推送文字，防止语音或者短信推送失效
-	{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}},
+	{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}, "proxy": {"http": "socks5://127.0.0.1:1080","https": "socks5://127.0.0.1:1080"}}, #推送对象也可以指定代理
 	{"type": "telegram", "id": "telegram @用户群聊频道名 或 -聊天id号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
     ]
  }
@@ -90,7 +90,7 @@ YoutubeLive|监视youtube直播和视频|interval、timezone、vip_dic、word_di
 YoutubeChat|监视youtube直播评论|同上|父监视器target（取负）、直播评论发送频道|直播评论文字|||通常由YoutubeLive监视器创建 无需在配置文件中指定
 YoutubeCom|监视youtube社区帖子|同上|target|帖子文字|付费帖子，可留空|||
 YoutubeNote|监视cookies对应用户的通知|同上||通知文字内容（包括superchat）|用户通知，必要|||
-TwitterUser|监视twitter用户基本信息|同上|target||必要|"no_increase"|no_increase为是否不推送推文和媒体数量的增加 默认为"False" 可选"True"
+TwitterUser|监视twitter用户基本信息|同上|target||必要|"no_increase"，"no_repeat"|no_increase为是否不推送推文和媒体数量的增加 默认为"False" 可选"True"，no_repeat为是否不推送短时间内重复的推文和媒体数量 默认为"False" 可选"间隔秒数"
 TwitterTweet|监视twitter用户的推文|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|||
 TwitterSearch|监视推特搜索结果|同上|target、推文@对象|推文文字（包括#、@和链接）|必要|"only_live", "only_liveorvideo"|only_live为是否只推送有链接指向正在进行的youtube直播的推文 默认为"False" 可选"True"，only_liveorvideo为是否只推送有链接指向youtube直播或视频的推文 默认为"False" 可选"True"，当两者同时开启时则only_liveorvideo生效
 TwitcastLive|监视twitcast直播|同上|target|标题|可留空|"no_chat"，"status_push"，"regen"，"regen_amount"|no_chat为是否不记录弹幕 默认为"False" 可选"True"，status_push为推送相应类型的更新 默认为"开始\|结束"，regen为推送惩罚恢复间隔 默认为"False" 可选"间隔秒数"，regen_amount为每次推送惩罚恢复量 默认为"1" 可选"恢复数量"
