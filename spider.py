@@ -484,7 +484,7 @@ class YoutubeNote(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
-# vip=tgt, no_increase="True"/"False"
+# vip=tgt, no_increase="True"/"False", no_repeat="False"/"间隔秒数"
 class TwitterUser(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
         super().__init__(name, tgt, tgt_name, cfg, **config_mod)
@@ -497,6 +497,10 @@ class TwitterUser(SubMonitor):
         self.userdata_dic = {}
         # 是否不推送推文和媒体数量的增加
         self.no_increase = getattr(self, "no_increase", "False")
+        # 是否不推送短时间内重复的推文和媒体数量
+        self.no_repeat = getattr(self, "no_repeat", "False")
+        self.statuses_dic = {}
+        self.media_dic = {}
 
     def run(self):
         while not self.stop_now:
@@ -515,6 +519,22 @@ class TwitterUser(SubMonitor):
                             pushtext_body += "新键：%s\n值：%s\n" % (key, str(user_datadic_new[key]))
                             self.userdata_dic[key] = user_datadic_new[key]
                         elif self.userdata_dic[key] != user_datadic_new[key]:
+                            if self.no_repeat != "False" and key == "statuses_count":
+                                time_now = getutctimestamp()
+                                if user_datadic_new[key] in self.statuses_dic:
+                                    if time_now < self.statuses_dic[user_datadic_new[key]] + float(self.no_repeat):
+                                        self.userdata_dic[key] = user_datadic_new[key]
+                                        self.statuses_dic[user_datadic_new[key]] = time_now
+                                        continue
+                                self.statuses_dic[user_datadic_new[key]] = time_now
+                            if self.no_repeat != "False" and key == "media_count":
+                                time_now = getutctimestamp()
+                                if user_datadic_new[key] in self.media_dic:
+                                    if time_now < self.media_dic[user_datadic_new[key]] + float(self.no_repeat):
+                                        self.userdata_dic[key] = user_datadic_new[key]
+                                        self.media_dic[user_datadic_new[key]] = time_now
+                                        continue
+                                self.media_dic[user_datadic_new[key]] = time_now
                             if self.no_increase == "True" and (key == "statuses_count" or key == "media_count"):
                                 if self.userdata_dic[key] < user_datadic_new[key]:
                                     self.userdata_dic[key] = user_datadic_new[key]
@@ -524,7 +544,7 @@ class TwitterUser(SubMonitor):
                             self.userdata_dic[key] = user_datadic_new[key]
 
                     if pushtext_body:
-                        self.push(pushtext_body)
+                        self.push(pushtext_body.strip())
                 writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
             except Exception as e:
                 printlog('[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
@@ -602,9 +622,15 @@ class TwitterTweet(SubMonitor):
         pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
 
         if pushcolor_dic:
-            pushtext = "【%s %s 推特%s】\n内容：%s\n媒体：%s\n链接：%s\n时间：%s\n网址：https://twitter.com/%s/status/%s" % (
+            pushmedia = ""
+            if tweetdic[tweet_id]["tweet_media"]:
+                pushmedia = "媒体：%s\n" % tweetdic[tweet_id]["tweet_media"]
+            pushurl = ""
+            if tweetdic[tweet_id]["tweet_urls"]:
+                pushurl = "链接：%s\n" % tweetdic[tweet_id]["tweet_urls"]
+            pushtext = "【%s %s 推特%s】\n内容：%s\n%s%s时间：%s\n网址：https://twitter.com/%s/status/%s" % (
                 self.__class__.__name__, self.tgt_name, tweetdic[tweet_id]["tweet_type"],
-                tweetdic[tweet_id]["tweet_text"], tweetdic[tweet_id]["tweet_media"], tweetdic[tweet_id]["tweet_urls"],
+                tweetdic[tweet_id]["tweet_text"], pushmedia, pushurl,
                 formattime(tweetdic[tweet_id]["tweet_timestamp"], self.timezone), self.tgt, tweet_id)
             pushall(pushtext, pushcolor_dic, self.push_list)
             printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
@@ -1908,7 +1934,10 @@ def getyoutubepostdic(user_id, cookies, proxy):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
         }
         response = requests.get(url, headers=headers, cookies=cookies, timeout=(3, 7), proxies=proxy)
-        postpage_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
+        if response.text.count('window["ytInitialData"]'):
+            postpage_json = json.loads(re.findall('window\["ytInitialData"\] = (.*);', response.text)[0])
+        else:
+            postpage_json = json.loads(re.findall('>var ytInitialData = (.*?);</script>', response.text)[0])
         postlist_json = postpage_json['contents']['twoColumnBrowseResultsRenderer']['tabs'][3]['tabRenderer'][
             'content']['sectionListRenderer']['contents'][0]['itemSectionRenderer']['contents']
         for post in postlist_json:
@@ -2417,10 +2446,10 @@ def getsteamuser(user_id, cookies, proxy):
                                 proxies=proxy)
         soup = BeautifulSoup(response.text, 'lxml')
         if not soup.find(class_="profile_private_info"):
-            print(soup.find(class_="header_real_name ellipsis"))
             userdata_dic["user_position"] = soup.find(class_="header_real_name ellipsis").text.strip()
             userdata_dic["user_level"] = soup.find(class_="friendPlayerLevelNum").text.strip()
             userdata_dic["user_status"] = soup.find(class_="profile_in_game_header").text.strip()
+            userdata_dic["user_avatar"] = soup.find(class_="playerAvatarAutoSizeInner").img['src']
             for item_count in soup.find_all(class_="profile_count_link ellipsis"):
                 userdata_dic["user_" + item_count.find(class_="count_link_label").text.strip()] = item_count.find(
                     class_="profile_count_link_total").text.strip()
@@ -2543,39 +2572,41 @@ def pushall(pushtext, pushcolor_dic, push_list):
 
 # 推送
 def pushtoall(pushtext, push):
+    if 'proxy' not in push:
+        push['proxy'] = ''
     # 不论windows还是linux都是127.0.0.1
     if push['type'] == 'qq_user':
         if 'ip' not in push:
             push['ip'] = '127.0.0.1'
         url = 'http://%s:%s/send_private_msg?user_id=%s&message=%s' % (
             push['ip'], push['port'], push['id'], quote(str(pushtext)))
-        pushtourl('GET', url)
+        pushtourl('GET', url, push['proxy'])
     elif push['type'] == 'qq_group':
         if 'ip' not in push:
             push['ip'] = '127.0.0.1'
         url = 'http://%s:%s/send_group_msg?group_id=%s&message=%s' % (
             push['ip'], push['port'], push['id'], quote(str(pushtext)))
-        pushtourl('GET', url)
+        pushtourl('GET', url, push['proxy'])
     elif push['type'] == 'miaotixing':
         # 带文字推送可能导致语音和短信提醒失效
         url = 'https://miaotixing.com/trigger?id=%s&text=%s' % (push['id'], quote(str(pushtext)))
-        pushtourl('POST', url)
+        pushtourl('POST', url, push['proxy'])
     elif push['type'] == 'miaotixing_simple':
         url = 'https://miaotixing.com/trigger?id=%s' % push['id']
-        pushtourl('POST', url)
+        pushtourl('POST', url, push['proxy'])
     elif push['type'] == 'discord':
         url = push['id']
         headers = {"Content-Type": "application/json"}
         data = {"content": pushtext}
-        pushtourl('POST', url, headers, json.dumps(data))
+        pushtourl('POST', url, push['proxy'], headers, json.dumps(data))
     elif push['type'] == 'telegram':
         url = 'https://api.telegram.org/bot%s/sendMessage?chat_id=%s&text=%s' % (
             push['bot_id'], push['id'], quote(str(pushtext)))
-        pushtourl('POST', url)
+        pushtourl('POST', url, push['proxy'])
 
 
 # 推送到url
-def pushtourl(method, url, headers=None, data=None):
+def pushtourl(method, url, proxy, headers=None, data=None):
     if data is None:
         data = {}
     if headers is None:
@@ -2584,14 +2615,14 @@ def pushtourl(method, url, headers=None, data=None):
         status_code = 'fail'
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=(3, 7))
+                response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
             elif method == 'POST':
-                response = requests.post(url, headers=headers, data=data, timeout=(3, 7))
+                response = requests.post(url, headers=headers, data=data, timeout=(3, 7), proxies=proxy)
             status_code = response.status_code
         except:
             time.sleep(5)
         finally:
-            printlog('[Info] pushtourl：第%s次-结果%s (%s)' % (retry, status_code, url))
+            printlog('[Info] pushtourl：第%s次-结果%s (%s proxy:%s)' % (retry, status_code, url, proxy))
             if status_code == 200 or status_code == 204:
                 break
 
