@@ -611,6 +611,73 @@ class TwitterTweet(SubMonitor):
             writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
 
 
+# vip=tgt+mention, word=text
+class TwitterFleet(SubMonitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s.txt' % (self.__class__.__name__, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+
+        self.is_firstrun = True
+        self.tgt_restid = False
+        # fleet_id为整数
+        self.fleet_id_old = 0
+
+    def run(self):
+        while not self.stop_now:
+            # 获取用户restid
+            if not self.tgt_restid:
+                try:
+                    tgt_dic = gettwitteruser(self.tgt, self.cookies, self.proxy)
+                    self.tgt_restid = tgt_dic["rest_id"]
+                    writelog(self.logpath, '[Info] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, self.tgt_restid))
+                    writelog(self.logpath, '[Success] "%s" gettwitteruser %s' % (self.name, self.tgt))
+                except Exception as e:
+                    printlog('[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
+                    writelog(self.logpath, '[Error] "%s" gettwitteruser %s: %s' % (self.name, self.tgt, e))
+                    time.sleep(5)
+                    continue
+
+            # 获取fleet列表
+            if self.tgt_restid:
+                try:
+                    fleetdic_new = gettwitterfleetdic(self.tgt_restid, self.cookies, self.proxy)
+                    if self.is_firstrun:
+                        if fleetdic_new:
+                            self.fleet_id_old = sorted(fleetdic_new, reverse=True)[0]
+                        writelog(self.logpath,
+                                 '[Info] "%s" gettwitterfleetdic %s: %s' % (self.name, self.tgt, fleetdic_new))
+                        self.is_firstrun = False
+                    else:
+                        for fleet_id in fleetdic_new:
+                            if fleet_id > self.fleet_id_old:
+                                self.push(fleet_id, fleetdic_new)
+                        if fleetdic_new:
+                            self.fleet_id_old = sorted(fleetdic_new, reverse=True)[0]
+                    writelog(self.logpath, '[Success] "%s" gettwitterfleetdic %s' % (self.name, self.tgt_restid))
+                except Exception as e:
+                    printlog('[Error] "%s" gettwitterfleetdic %s: %s' % (self.name, self.tgt_restid, e))
+                    writelog(self.logpath, '[Error] "%s" gettwitterfleetdic %s: %s' % (self.name, self.tgt_restid, e))
+            time.sleep(self.interval)
+
+    def push(self, fleet_id, fleetdic):
+        # 获取用户推特时大小写不敏感，但检测用户和提及的时候大小写敏感
+        pushcolor_vipdic = getpushcolordic("%s\n%s" % (self.tgt, fleetdic[fleet_id]['fleet_mention']),
+                                           self.vip_dic)
+        pushcolor_worddic = getpushcolordic(fleetdic[fleet_id]['fleet_text'], self.word_dic)
+        pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
+
+        if pushcolor_dic:
+            pushtext = "【%s %s fleet发布】\n内容：%s\n时间：%s\n网址：%s" % (
+                self.__class__.__name__, self.tgt_name, fleetdic[fleet_id]["fleet_text"], 
+                formattime(fleetdic[fleet_id]["fleet_timestamp"], self.timezone), fleetdic[fleet_id]["fleet_urls"])
+            pushall(pushtext, pushcolor_dic, self.push_list)
+            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+
 # vip=tgt+mention, word=text, only_live="True"/"False", only_liveorvideo="True"/"False", "no_chat"="True"/"False"
 class TwitterSearch(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
@@ -2026,6 +2093,42 @@ def gettwittertweetdic(user_restid, cookies, proxy):
         raise e
 
 
+def gettwitterfleetdic(user_restid, cookies, proxy):
+    try:
+        fleet_dic = {}
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Gecko/20100101 Firefox/72.0',
+            'Accept': '*/*',
+            'Accept-Language': 'zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2',
+            'authorization': 'Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA',
+            'x-twitter-auth-type': 'OAuth2Session',
+            'x-twitter-client-language': 'zh-cn',
+            'x-twitter-active-user': 'yes',
+            'x-csrf-token': cookies['ct0'],
+            'Origin': 'https://twitter.com',
+            'Connection': 'keep-alive',
+            'TE': 'Trailers'
+        }
+        response = requests.get('https://api.twitter.com/fleets/v1/user_fleets?user_id=%s' % user_restid, headers=headers, 
+                                cookies=cookies, timeout=(3, 7), proxies=proxy)
+
+        for fleetthread in response.json()['fleet_threads']:
+            for fleet in fleetthread['fleets']:
+                fleet_timestamp = phrasetimestamp(fleet['created_at'].split('.')[0], "%Y-%m-%dT%H:%M:%S")
+                fleet_text = ""
+                fleet_mention = ""
+                for fleet_box in fleet['media_bounding_boxes']:
+                    if fleet_box['entity']['type'] == 'text':
+                        fleet_text += "%s\n" % fleet_box['entity']['value']
+                    elif fleet_box['entity']['type'] == 'mention':
+                        fleet_mention += "%s\n" % fleet_box['entity']['value'].replace('@', '')
+                fleet_url = fleet['media_entity']['media_url_https']
+                fleet_dic[int(fleet['fleet_id'].split('-')[1])] = {"fleet_timestamp": fleet_timestamp, "fleet_text": fleet_text.strip(), "fleet_mention": fleet_mention, "fleet_urls": fleet_url}
+        return fleet_dic
+    except Exception as e:
+        raise e
+
+
 def gettwittersearchdic(qword, cookies, proxy):
     try:
         tweet_dic = {}
@@ -2556,6 +2659,7 @@ def createmonitor(monitor_name, config):
                                               **monitor_config_mod)
     monitor_thread.start()
     return monitor_thread
+
 
 
 if __name__ == '__main__':
