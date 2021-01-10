@@ -60,7 +60,7 @@
 	},
 	"twitter": {
 		"submonitor_dic": {
-			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "True"},
+			"TwitterUser 神楽めあ": {"class": "TwitterUser", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60, "no_increase": "True", "no_repeat": 7200},
 			"TwitterTweet 神楽めあ": {"class": "TwitterTweet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
 			"TwitterFleet 神楽めあ": {"class": "TwitterFleet", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
 			"TwitcastLive 神楽めあ": {"class": "TwitcastLive", "target": "KaguraMea_VoV", "target_name": "神楽めあ", "config_name": "twitter_config", "interval": 60},
@@ -136,7 +136,11 @@
 			},
 			"word_dic": {
 				"【": {"trans_vip": 4},
-				"】": {"trans_vip": 4}
+				"】": {"trans_vip": 4},
+				"\"": {"trans_vip": 4},
+				"'": {"trans_vip": 4},
+				"“": {"trans_vip": 4},
+				"”": {"trans_vip": 4}
 			},
 			"cookies": {},
 			"proxy": {},
