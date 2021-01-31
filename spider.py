@@ -278,6 +278,7 @@ class YoutubeChat(SubMonitor):
 
         # continuation为字符
         self.continuation = False
+        self.key = False
         self.pushpunish = {}
         self.regen_time = 0
         self.tgt_channel = getattr(self, "tgt_channel", "")
@@ -289,9 +290,9 @@ class YoutubeChat(SubMonitor):
             # 获取continuation
             if not self.continuation:
                 try:
-                    self.continuation = getyoutubechatcontinuation(self.tgt, self.proxy)
+                    self.continuation, self.key = getyoutubechatcontinuation(self.tgt, self.proxy)
                     writelog(self.logpath,
-                             '[Info] "%s" getyoutubechatcontinuation %s: %s' % (self.name, self.tgt, self.continuation))
+                             '[Info] "%s" getyoutubechatcontinuation %s: %s(%s)' % (self.name, self.tgt, self.continuation, self.key))
                     writelog(self.logpath, '[Success] "%s" getyoutubechatcontinuation %s' % (self.name, self.tgt))
                 except Exception as e:
                     printlog('[Error] "%s" getyoutubechatcontinuation %s: %s' % (self.name, self.tgt, e))
@@ -302,7 +303,7 @@ class YoutubeChat(SubMonitor):
             # 获取直播评论列表
             if self.continuation:
                 try:
-                    chatlist, self.continuation = getyoutubechatlist(self.continuation, self.proxy)
+                    chatlist, self.continuation = getyoutubechatlist(self.tgt, self.continuation, self.key, self.proxy)
                     for chat in chatlist:
                         self.push(chat)
 
@@ -316,8 +317,8 @@ class YoutubeChat(SubMonitor):
                     if self.interval < 0.1:
                         self.interval = 0.1
                 except Exception as e:
-                    printlog('[Error] "%s" getyoutubechatlist %s: %s' % (self.name, self.continuation, e))
-                    writelog(self.logpath, '[Error] "%s" getyoutubechatlist %s: %s' % (self.name, self.continuation, e))
+                    printlog('[Error] "%s" getyoutubechatlist %s(%s): %s' % (self.name, self.continuation, self.key, e))
+                    writelog(self.logpath, '[Error] "%s" getyoutubechatlist %s(%s): %s' % (self.name, self.continuation, self.key, e))
             time.sleep(self.interval)
 
     def push(self, chat):
@@ -501,6 +502,7 @@ class TwitterUser(SubMonitor):
         self.no_repeat = getattr(self, "no_repeat", "False")
         self.statuses_dic = {}
         self.media_dic = {}
+        self.favourites_dic = {}
 
     def run(self):
         while not self.stop_now:
@@ -535,6 +537,14 @@ class TwitterUser(SubMonitor):
                                         self.media_dic[user_datadic_new[key]] = time_now
                                         continue
                                 self.media_dic[user_datadic_new[key]] = time_now
+                            if self.no_repeat != "False" and key == "favourites_count":
+                                time_now = getutctimestamp()
+                                if user_datadic_new[key] in self.favourites_dic:
+                                    if time_now < self.favourites_dic[user_datadic_new[key]] + float(self.no_repeat):
+                                        self.userdata_dic[key] = user_datadic_new[key]
+                                        self.favourites_dic[user_datadic_new[key]] = time_now
+                                        continue
+                                self.favourites_dic[user_datadic_new[key]] = time_now
                             if self.no_increase == "True" and (key == "statuses_count" or key == "media_count"):
                                 if self.userdata_dic[key] < user_datadic_new[key]:
                                     self.userdata_dic[key] = user_datadic_new[key]
@@ -1843,47 +1853,41 @@ def getyoutubechatcontinuation(video_id, proxy):
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36'}
         response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
         continuation = re.findall('"continuation":"([^"]*)"', response.text)[0]
+        key = re.findall('"INNERTUBE_API_KEY":"([^"]*)"', response.text)[0]
         if continuation:
-            return continuation
+            return continuation, key
         else:
             raise Exception("Invalid continuation")
     except Exception as e:
         raise e
 
 
-def getyoutubechatlist(continuation, proxy):
+def getyoutubechatlist(video_id, continuation, key, proxy):
     try:
         chatlist = []
-        url = "https://www.youtube.com/live_chat/get_live_chat"
+        url = "https://www.youtube.com/youtubei/v1/live_chat/get_live_chat?key=%s" % key
         headers = {
-            'authority': 'www.youtube.com',
-            'x-youtube-device': 'cbr=Chrome&cbrver=79.0.3945.130&cosver=10.0&cos=Windows',
-            'x-youtube-page-label': 'youtube.ytfe.desktop_20200116_5_RC0',
             'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.130 Safari/537.36',
-            'x-youtube-variants-checksum': '781368a49e2fe3e6fdf766601d0a3202',
-            'x-youtube-page-cl': '290089588',
-            'x-spf-referer': 'https://www.youtube.com/live_chat?continuation=' + continuation,
-            'x-youtube-utc-offset': '480',
             'x-youtube-client-name': '1',
-            'x-spf-previous': 'https://www.youtube.com/live_chat?continuation=' + continuation,
-            'x-youtube-client-version': '2.20200116.05.00',
-            'x-youtube-identity-token': 'QUFFLUhqbER4MFo0b1l6b0lNZXJyVk4yc1k3U09YazVPZ3w=',
-            'x-youtube-ad-signals': 'dt=1579486488935&flash=0&frm=1&u_tz=480&u_his=3&u_java&u_h=864&u_w=1536&u_ah=824&u_aw=1536&u_cd=24&u_nplug=3&u_nmime=4&bc=31&bih=722&biw=1519&brdim=0%2C0%2C0%2C0%2C1536%2C0%2C1536%2C824%2C400%2C563&vis=2&wgl=true&ca_type=image',
-            'accept': '*/*',
-            'x-client-data': 'CKO1yQEIirbJAQimtskBCMG2yQEIqZ3KAQi9sMoBCPe0ygEIlrXKAQiZtcoBCOy1ygEI+7vKARirpMoB',
-            'sec-fetch-site': 'same-origin',
-            'sec-fetch-mode': 'cors',
-            'referer': 'https://www.youtube.com/live_chat?continuation=' + continuation,
+            'x-youtube-client-version': '2.20210128.02.00',
+            'referer': 'https://www.youtube.com/live_chat?is_popout=1&v=%s' % video_id
         }
-        params = (
-            ('commandMetadata', '[object Object]'),
-            ('continuation', continuation),
-            ('hidden', 'false'),
-            ('pbj', '1'),
-        )
-        response = requests.get(url, headers=headers, params=params, timeout=(3, 7), proxies=proxy)
-        continuation_new = re.findall('"continuation":"([^"]*)"', response.text)[0]
-        chatlist_json = json.loads(response.text)['response']['continuationContents']['liveChatContinuation']
+        data = {
+            "context":{
+                "client":{
+                    "userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
+                    "clientName":"WEB",
+                    "clientVersion":"2.20210128.02.00",
+                    "originalUrl":"https://www.youtube.com/live_chat?is_popout=1&v=%s" % video_id,
+                    "mainAppWebInfo":{
+                        "graftUrl":"https://www.youtube.com/live_chat?is_popout=1&v=%s" % video_id
+                    }
+                }
+            },
+            "continuation":continuation}
+        response = requests.post(url, headers=headers, json=data, timeout=(3, 7), proxies=proxy)
+        continuation_new = re.findall('"continuation": "([^"]*)"', response.text)[0]
+        chatlist_json = json.loads(response.text)['continuationContents']['liveChatContinuation']
         if 'actions' in chatlist_json:
             for chat in chatlist_json['actions']:
                 if 'addChatItemAction' in chat:
