@@ -2619,9 +2619,9 @@ def pushtourl(method, url, proxy, headers=None, data=None):
         status_code = 'fail'
         try:
             if method == 'GET':
-                response = requests.get(url, headers=headers, timeout=(3, 7), proxies=proxy)
+                response = requests.get(url, headers=headers, timeout=(10, 30), proxies=proxy)
             elif method == 'POST':
-                response = requests.post(url, headers=headers, data=data, timeout=(3, 7), proxies=proxy)
+                response = requests.post(url, headers=headers, data=data, timeout=(10, 30), proxies=proxy)
             status_code = response.status_code
         except:
             time.sleep(5)
