@@ -2150,11 +2150,12 @@ def gettwitterfleetdic(user_restid, cookies, proxy):
                 fleet_timestamp = phrasetimestamp(fleet['created_at'].split('.')[0], "%Y-%m-%dT%H:%M:%S")
                 fleet_text = ""
                 fleet_mention = ""
-                for fleet_box in fleet['media_bounding_boxes']:
-                    if fleet_box['entity']['type'] == 'text':
-                        fleet_text += "%s\n" % fleet_box['entity']['value']
-                    elif fleet_box['entity']['type'] == 'mention':
-                        fleet_mention += "%s\n" % fleet_box['entity']['value'].replace('@', '')
+                if 'media_bounding_boxes' in fleet:
+                    for fleet_box in fleet['media_bounding_boxes']:
+                        if fleet_box['entity']['type'] == 'text':
+                            fleet_text += "%s\n" % fleet_box['entity']['value']
+                        elif fleet_box['entity']['type'] == 'mention':
+                            fleet_mention += "%s\n" % fleet_box['entity']['value'].replace('@', '')
                 fleet_url = fleet['media_entity']['media_url_https']
                 fleet_dic[int(fleet['fleet_id'].split('-')[1])] = {"fleet_timestamp": fleet_timestamp, "fleet_text": fleet_text.strip(), "fleet_mention": fleet_mention, "fleet_urls": fleet_url}
         return fleet_dic
