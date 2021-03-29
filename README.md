@@ -15,7 +15,7 @@
 ## 推送方式
 ##### qq推送
 基于[go-cqhttp](https://github.com/Mrs4s/go-cqhttp)  
-在命令行中运行`wget "https://github.com/Mrs4s/go-cqhttp/releases/download/v0.9.31/go-cqhttp-v0.9.31-linux-amd64" ; chmod +x go-cqhttp-v0.9.31-linux-386 ; ./go-cqhttp-v0.9.31-linux-amd64`运行mirai机器人并按照提示登录。初次运行后关闭mirai机器人，修改config.json中的内容为config.json设置示例中的内容，注意修改其中'用作机器人的QQ号'为机器人的qq号。之后再次运行`./go-cqhttp-v0.9.31-linux-amd64`即可。
+在命令行中运行`wget "https://github.com/Mrs4s/go-cqhttp/releases/download/v1.0.0-beta1/go-cqhttp_linux_386.tar.gz" ; tar -xvf go-cqhttp_linux_386.tar.gz ; chmod +x go-cqhttp ; ./go-cqhttp`运行mirai机器人并按照提示登录。初次运行后关闭mirai机器人，修改config.json中的内容为config.json设置示例中的内容，注意修改其中'用作机器人的QQ号'为机器人的qq号。之后再次运行`./go-cqhttp`即可。
 
 ##### 喵提醒
 在喵提醒微信公众号中选择'提醒'-'添加提醒'，完成设置后将会收到一个喵提醒号。更加详细的说明可以在其微信公众号中查看。
