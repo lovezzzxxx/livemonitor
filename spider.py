@@ -815,7 +815,7 @@ class TwitcastLive(Monitor):
         while not self.stop_now:
             # 获取直播状态
             try:
-                livedic_new = gettwitcastlive(self.tgt, self.proxy)
+                livedic_new = gettwitcastlive(self.tgt, self.cookies, self.proxy)
                 for live_id in livedic_new:
                     if live_id not in self.livedic or livedic_new[live_id]["live_status"] == "结束":
                         for live_id_old in self.livedic:
@@ -871,6 +871,7 @@ class TwitcastLive(Monitor):
                     writelog(self.logpath, '[Info] "%s" stopsubmonitor %s' % (self.name, monitor_name))
 
 
+'''
 # vip=chat_screenname, word=text, punish=tgt+push(不包括含有'vip'的类型)
 class TwitcastChat(SubMonitor):
     def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
@@ -896,7 +897,7 @@ class TwitcastChat(SubMonitor):
         while not self.stop_now:
             # 获取直播评论列表
             try:
-                chatlist = gettwitcastchatlist(self.tgt, self.proxy)
+                chatlist = gettwitcastchatlist(self.tgt, self.cookies, self.proxy)
                 for chat in chatlist:
                     # chatlist默认从小到大排列
                     if self.chat_id_old < chat['chat_id']:
@@ -963,7 +964,132 @@ class TwitcastChat(SubMonitor):
                 else:
                     self.pushpunish[color] = 1
         return pushcolor_dic
+'''
 
+
+# vip=chat_screenname, word=text, punish=tgt+push(不包括含有'vip'的类型)
+class TwitcastChat(SubMonitor):
+    def __init__(self, name, tgt, tgt_name, cfg, **config_mod):
+        super().__init__(name, tgt, tgt_name, cfg, **config_mod)
+
+        self.logpath = './log/%s/%s/%s.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
+        if not os.path.exists('./log/%s' % self.__class__.__name__):
+            os.mkdir('./log/%s' % self.__class__.__name__)
+        if not os.path.exists('./log/%s/%s' % (self.__class__.__name__, self.tgt_name)):
+            os.mkdir('./log/%s/%s' % (self.__class__.__name__, self.tgt_name))
+        self.chatpath = './log/%s/%s/%s_chat.txt' % (
+            self.__class__.__name__, self.tgt_name, self.name)
+        
+        self.proxyhost = ""
+        self.proxyport = ""
+        if 'http' in self.proxy:
+            self.proxyhost = self.proxy['http'].split(':')[-2].replace('/', '')
+            self.proxyport = self.proxy['http'].split(':')[-1]
+        self.pushpunish = {}
+        self.regen_time = 0
+        self.tgt_channel = getattr(self, "tgt_channel", "")
+        self.regen = getattr(self, "regen", "False")
+        self.regen_amount = getattr(self, "regen_amount", 1)
+
+    def on_message(self, data):
+        try:
+            for chat_item in json.loads(data):
+                chat_type = chat_item['type']
+                chat_id = chat_item['id']
+                chat_screenname = ''
+                chat_name = ''
+                if 'author' in chat_item:
+                    chat_screenname = chat_item['author']['screenName']
+                    chat_name = chat_item['author']['name']
+                elif 'sender' in chat_item:
+                    chat_screenname = chat_item['sender']['screenName']
+                    chat_name = chat_item['sender']['name']
+                chat_timestamp = float(chat_item['createdAt']) / 1000
+                chat_text = chat_item['message']
+                if 'item' in chat_item:
+                    chat_item['item']['name']
+                    chat_type += ' %s' % chat_item['item']['name']
+                chat = {"chat_type": chat_type, "chat_id": chat_id, "chat_screenname": chat_screenname, "chat_name": chat_name,
+                 "chat_timestamp": chat_timestamp, "chat_text": chat_text}
+                self.push(chat)
+        except Exception as e:
+            writelog(self.logpath, '[Error] "%s" error %s: %s' % (self.name, self.tgt, e))
+
+    def on_error(self, error):
+        writelog(self.logpath, '[Error] "%s" error %s: %s' % (self.name, self.tgt, error))
+
+    def on_close(self):
+        writelog(self.logpath, '[Stop] "%s" disconnect %s' % (self.name, self.tgt))
+
+    def run(self):
+        while not self.stop_now:
+            try:
+                chaturl = gettwitcastchaturl(self.tgt, self.cookies, self.proxy)
+                writelog(self.logpath,
+                             '[Info] "%s" gettwitcastchaturl %s: %s' % (self.name, self.tgt, chaturl))
+                writelog(self.logpath, '[Success] "%s" gettwitcastchaturl %s' % (self.name, self.tgt))
+            except:
+                printlog('[Error] "%s" gettwitcastchaturl %s: %s' % (self.name, self.tgt, e))
+                writelog(self.logpath, '[Error] "%s" gettwitcastchaturl %s: %s' % (self.name, self.tgt, e))
+                time.sleep(5)
+                continue
+
+            writelog(self.logpath, '[Start] "%s" connect %s' % (self.name, self.tgt))
+            self.ws = websocket.WebSocketApp(chaturl, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close)
+            self.ws.run_forever(http_proxy_host=self.proxyhost, http_proxy_port=self.proxyport)
+            time.sleep(1)     
+
+    def push(self, chat):
+        writelog(self.chatpath, "%s\t%s\t%s\t%s\t%s" % (
+            chat["chat_timestamp"], chat["chat_name"], chat["chat_screenname"], chat["chat_type"], chat["chat_text"]))
+
+        pushcolor_vipdic = getpushcolordic(chat["chat_screenname"], self.vip_dic)
+        pushcolor_worddic = getpushcolordic(chat["chat_text"], self.word_dic)
+        pushcolor_dic = addpushcolordic(pushcolor_vipdic, pushcolor_worddic)
+
+        if pushcolor_dic:
+            pushcolor_dic = self.punish(pushcolor_dic)
+
+            pushtext = "【%s %s 直播评论】\n用户：%s(%s)\n内容：%s\n类型：%s\n时间：%s\n网址：https://twitcasting.tv/%s" % (
+                self.__class__.__name__, self.tgt_name, chat["chat_name"], chat["chat_screenname"], chat["chat_type"], chat["chat_text"],
+                formattime(chat["chat_timestamp"], self.timezone), self.tgt_channel)
+            pushall(pushtext, pushcolor_dic, self.push_list)
+            printlog('[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+            writelog(self.logpath, '[Info] "%s" pushall %s\n%s' % (self.name, str(pushcolor_dic), pushtext))
+
+    def punish(self, pushcolor_dic):
+        if self.regen != "False":
+            time_now = getutctimestamp()
+            regen_amt = int(int((time_now - self.regen_time) / float(self.regen)) * float(self.regen_amount))
+            if regen_amt:
+                self.regen_time = time_now
+                for color in list(self.pushpunish):
+                    if self.pushpunish[color] > regen_amt:
+                        self.pushpunish[color] -= regen_amt
+                    else:
+                        self.pushpunish.pop(color)
+
+        if self.tgt_channel in self.vip_dic:
+            for color in self.vip_dic[self.tgt_channel]:
+                if color in pushcolor_dic and not color.count("vip"):
+                    pushcolor_dic[color] -= self.vip_dic[self.tgt_channel][color]
+
+        for color in self.pushpunish:
+            if color in pushcolor_dic and not color.count("vip"):
+                pushcolor_dic[color] -= self.pushpunish[color]
+
+        for color in pushcolor_dic:
+            if pushcolor_dic[color] > 0 and not color.count("vip"):
+                if color in self.pushpunish:
+                    self.pushpunish[color] += 1
+                else:
+                    self.pushpunish[color] = 1
+        return pushcolor_dic
+    
+    def stop(self):
+        self.stop_now = True
+        self.ws.close()
 
 # vip=tgt
 class FanboxUser(SubMonitor):
@@ -1290,8 +1416,8 @@ class BilibiliChat(SubMonitor):
                 chat = {'chat_type': chat_type, 'chat_text': chat_text, 'chat_userid': chat_userid,
                         'chat_username': chat_username, 'chat_timestamp': chat_timestamp}
                 self.push(chat)
-        except:
-            pass
+        except Exception as e:
+            writelog(self.logpath, '[Error] "%s" error %s: %s' % (self.name, self.tgt, e))
 
     def on_open(self):
         # 未登录uid则为0，注意int和str类有区别，protover为1则prasepacket中无需用zlib解压
@@ -2244,11 +2370,11 @@ def gettwittersearchdic(qword, cookies, proxy):
         raise e
 
 
-def gettwitcastlive(user_id, proxy):
+def gettwitcastlive(user_id, cookies, proxy):
     try:
         live_dic = {}
         url = 'https://twitcasting.tv/streamchecker.php?u=%s&v=999' % user_id
-        response = requests.get(url, timeout=(3, 7), proxies=proxy)
+        response = requests.get(url, cookies=cookies, timeout=(3, 7), proxies=proxy)
         live = response.text.split("\t")
         live_id = live[0]
         if live_id:
@@ -2262,22 +2388,35 @@ def gettwitcastlive(user_id, proxy):
         raise e
 
 
-def gettwitcastchatlist(live_id, proxy):
+'''
+def gettwitcastchatlist(live_id, cookies, proxy):
     try:
         twitcastchatlist = []
         url = 'https://twitcasting.tv/userajax.php?c=listall&m=%s&n=10&f=0k=0&format=json' % live_id
-        response = requests.get(url, timeout=(3, 7), proxies=proxy)
-        for i in range(len(response.json()['comments'])):
-            chat = response.json()['comments'][i]
-            chat_id = chat['id']
-            chat_screenname = chat['author']['screenName']
-            chat_name = chat['author']['name']
-            chat_timestamp = float(chat['createdAt']) / 1000
-            chat_text = chat['message']
-            twitcastchatlist.append(
-                {"chat_id": chat_id, "chat_screenname": chat_screenname, "chat_name": chat_name,
+        response = requests.get(url, cookies=cookies, timeout=(3, 7), proxies=proxy)
+        for chat in response.json()['comments']:
+            if chat['type'] == "comment":
+                chat_id = chat['id']
+                chat_screenname = chat['author']['screenName']
+                chat_name = chat['author']['name']
+                chat_timestamp = float(chat['createdAt']) / 1000
+                chat_text = chat['message']
+                twitcastchatlist.append(
+                    {"chat_id": chat_id, "chat_screenname": chat_screenname, "chat_name": chat_name,
                  "chat_timestamp": chat_timestamp, "chat_text": chat_text})
         return twitcastchatlist
+    except Exception as e:
+        raise e
+'''
+
+
+def gettwitcastchaturl(live_id, cookies, proxy):
+    headers = {'Content-Type': 'multipart/form-data; boundary=----WebKitFormBoundary2C91D7bEcYKA0eGC'}
+    data = '------WebKitFormBoundary2C91D7bEcYKA0eGC\nContent-Disposition: form-data; name="movie_id"\n\n%s' % live_id
+    try:
+        response = requests.post('https://twitcasting.tv/eventpubsuburl.php', headers=headers, cookies=cookies, data=data, timeout=(3,7), proxies=proxy)
+        chaturl = "%s&comment=1&gift=1" % response.json()['url']
+        return(chaturl)
     except Exception as e:
         raise e
 
@@ -2474,10 +2613,9 @@ def getosuuser(user_id, cookies, proxy):
         userdata_dic.pop('statistics')
 
         userdata_dic.pop('follower_count')
-        userdata_dic.pop('rank')
-        userdata_dic.pop('rankHistory')
-        userdata_dic.pop('rank_history')
-        userdata_dic.pop('pp_rank')
+        userdata_dic.pop('global_rank')
+        userdata_dic.pop('ranked_score')
+        userdata_dic.pop('country_rank')
         userdata_dic.pop('last_visit')
 
         # 比赛结果
@@ -2695,7 +2833,6 @@ def createmonitor(monitor_name, config):
                                               **monitor_config_mod)
     monitor_thread.start()
     return monitor_thread
-
 
 
 if __name__ == '__main__':
