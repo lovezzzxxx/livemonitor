@@ -2613,9 +2613,12 @@ def getosuuser(user_id, cookies, proxy):
         userdata_dic.pop('statistics')
 
         userdata_dic.pop('follower_count')
+        userdata_dic.pop('rank')
         userdata_dic.pop('global_rank')
         userdata_dic.pop('ranked_score')
         userdata_dic.pop('country_rank')
+        userdata_dic.pop('rank_history')
+        userdata_dic.pop('rankHistory')
         userdata_dic.pop('last_visit')
 
         # 比赛结果
