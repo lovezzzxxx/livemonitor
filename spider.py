@@ -1029,7 +1029,7 @@ class TwitcastChat(SubMonitor):
                 writelog(self.logpath,
                              '[Info] "%s" gettwitcastchaturl %s: %s' % (self.name, self.tgt, chaturl))
                 writelog(self.logpath, '[Success] "%s" gettwitcastchaturl %s' % (self.name, self.tgt))
-            except:
+            except Exception as e:
                 printlog('[Error] "%s" gettwitcastchaturl %s: %s' % (self.name, self.tgt, e))
                 writelog(self.logpath, '[Error] "%s" gettwitcastchaturl %s: %s' % (self.name, self.tgt, e))
                 time.sleep(5)
