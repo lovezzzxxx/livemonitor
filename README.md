@@ -69,7 +69,7 @@
         {"type": "miaotixing", "id": "喵提醒号", "color_dic": {"mea": 1}},
         {"type": "miaotixing_simple", "id": "喵提醒号", "color_dic": {"mea": 1}}, #不推送文字，防止语音或者短信推送失效
 	{"type": "discord", "id": "discord webhook链接", "color_dic": {"mea": 1}, "proxy": {"http": "socks5://127.0.0.1:1080","https": "socks5://127.0.0.1:1080"}}, #推送对象也可以指定代理
-	{"type": "telegram", "id": "telegram @用户群聊频道名 或 -聊天id号", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
+	{"type": "telegram", "id": "telegram @用户群聊频道名 或 聊天id号(群组聊天id号前有"-")", "bot_id": "telegram bot token", "color_dic": {"mea": 1}}
     ]
  }
 }
